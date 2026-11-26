@@ -25,6 +25,8 @@ for(const left of windows)for(let p=0;p<512;p++){
 }
 const block=board([[126,70],[127,70],[126,71],[127,71]],128,72);
 assert.deepEqual(next(block),block);
+const seamBlock=board([[31,2],[32,2],[31,3],[32,3]],64,5);
+assert.deepEqual(next(seamBlock),seamBlock,'block across an internal seam');
 for(const x of [31,63,95]){
   const b=board([[x-1,1],[x,1],[x+1,1]],128,72);
   assert.deepEqual(next(b),board([[x,0],[x,1],[x,2]],128,72));

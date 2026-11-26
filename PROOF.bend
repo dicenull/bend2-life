@@ -117,3 +117,12 @@ def Laws.neighborhood_word_matches_reference(tl, tc, tr, ml, mc, mr, bl, bc, br)
         Life.scan(32n, t, m, b, w1, w2, w3, e1, e2, e3),
         Laws.reference_row(32n, t, m, b, w1, w2, w3, e1, e2, e3),
         Pattern.nat_induction(~Row, ~row_extend, row_base, 31n)(t, m, b, w1, w2, w3, e1, e2, e3))
+
+def Laws.seam_block_is_still():
+  {==}
+
+def Laws.seam_blinker_turns_vertical():
+  {==}
+
+def Laws.seam_blinker_returns_after_two():
+  {==}

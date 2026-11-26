@@ -1,5 +1,6 @@
 # Conway B3/S23: cases cover all natural neighbor counts.
 import Base
+import ./pattern-spec.bend as Pattern
 import ./main.bend as Life
 
 law underpopulation_zero:
@@ -157,3 +158,13 @@ law neighborhood_word_matches_reference:
   for +br: U32
   {Life.next_neighborhood(tl, tc, tr, ml, mc, mr, bl, bc, br)
     == neighborhood_reference(tl, tc, tr, ml, mc, mr, bl, bc, br) : U32}
+
+# Probe patterns after one and two generations, as in the upstream benchmark.
+law seam_block_is_still:
+  {Pattern.step(Pattern.block()) == Pattern.block() : Pattern.Patch}
+
+law seam_blinker_turns_vertical:
+  {Pattern.step(Pattern.horizontal()) == Pattern.vertical() : Pattern.Patch}
+
+law seam_blinker_returns_after_two:
+  {Pattern.step(Pattern.step(Pattern.horizontal())) == Pattern.horizontal() : Pattern.Patch}
