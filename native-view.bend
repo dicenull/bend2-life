@@ -35,10 +35,28 @@ def button_face(+i: U32, +lx: U32, +y: U32, running: Bool, width: U32, z: U32) -
   on = glyph_on(Layout.in_area(lx,y,2,6,10,10), icon(i,running,width),lx,y)
   Bool.pick(U32,on,icon_ink(i,z),face)
 
-def header(at: Maybe<U32>, x: U32, +y: U32, running: Bool, width: U32, z: U32) -> U32:
+# The small label uses 3 x 5 glyphs at one tile per pixel.
+def zoom_digit(z: U32) -> U32:
+  match z:
+    case 1: 29850
+    case 2: 29347
+    case 3: 14499
+    case _: 18925
+
+def label_pixel(inside: Bool, bits: U32, dx: U32, dy: U32) -> Bool:
+  match inside:
+    case False{}: False{}
+    case True{}: U32.is_ne(U32.and(U32.shrn(bits,U32.to_nat((dy * 3 + dx : U32))),1),0)
+
+def zoom_label(+x: U32, +y: U32, z: U32) -> Bool:
+  label_pixel(Layout.in_area(x,y,104,9,3,5),zoom_digit(z),(x - 104 : U32),(y - 9 : U32))
+    || label_pixel(Layout.in_area(x,y,108,9,3,5),21824,(x - 108 : U32),(y - 9 : U32))
+
+def header(at: Maybe<U32>, +x: U32, +y: U32, running: Bool, width: U32, z: U32) -> U32:
   match at:
     case Some{+i}: button_face(i,(x - Layout.tool_start(i) : U32),y,running,width,z)
-    case None{}: Bool.pick(U32,U32.is_eq(y,22),4015707,1185563)
+    case None{}:
+      Bool.pick(U32,zoom_label(x,y,z),11451601,Bool.pick(U32,U32.is_eq(y,22),4015707,1185563))
 
 def cell_phase(alive: U32, x: U32, y: U32) -> U32:
   match alive:

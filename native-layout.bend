@@ -5,11 +5,14 @@ def in_area(+x: U32, +y: U32, +left: U32, +top: U32, w: U32, h: U32) -> Bool:
   (x >= left && x < left + w && y >= top && y < top + h : U32)
 
 def tool_start(i: U32) -> U32:
-  (4 + 17 * i : U32)
+  match i:
+    case 6: 113
+    case n: (4 + 17 * n : U32)
 
 def tool_at(+x: U32, +y: U32) -> Maybe<U32>:
   +i = U32.div((x - 4 : U32), 17)
-  Bool.pick(Maybe<U32>, ((i < 7 : U32) && in_area(x,y,tool_start(i),4,14,14)), Some{i}, None{})
+  regular = Bool.pick(Maybe<U32>, ((i < 6 : U32) && in_area(x,y,tool_start(i),4,14,14)), Some{i}, None{})
+  Bool.pick(Maybe<U32>, in_area(x,y,tool_start(6),4,14,14), Some{6}, regular)
 
 # Tile-space viewport, centered at (64, 65). Zoom affects presentation only.
 type Cell is Data:

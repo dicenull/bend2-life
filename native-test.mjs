@@ -74,14 +74,31 @@ try {
   assert.equal(press(s,22,20).running,true,'play toolbar hit target');
   assert.equal(press(s,342,20).board.width,128,'size toolbar hit target');
 
-  const minus=(4+17*5+7)*4, plus=(4+17*6+7)*4;
+  const minus=(4+17*5+7)*4, plus=(113+7)*4;
   let mag=key(M.initial(),99);
   const unzoomed=mag.board;
   assert.equal(press(mag,minus,44).zoom,1);
-  mag=press(mag,plus,44);
-  assert.equal(mag.zoom,2);
-  mag=press(mag,plus,44);
-  assert.equal(mag.zoom,4);
+  const labels=new Set();
+  for(let level=1;level<=4;level++){
+    assert.equal(mag.zoom,level);
+    const glyph=[];
+    for(let y=9;y<14;y++)for(let x=104;x<107;x++){
+      glyph.push(V.color(x,y,mag)===11451601);
+    }
+    assert.ok(glyph.some(Boolean));
+    assert.equal(V.color(108,11,mag),11451601,'x suffix is visible');
+    labels.add(glyph.join(','));
+    if(level===3){
+      const clicked=press(mag,269,273);
+      assert.deepEqual(positions(clicked.board),[[49,29]]);
+      assert.equal(V.color(67,68,clicked),16759152);
+      assert.equal(V.color(69,70,clicked),16759152,'the cell spans 3 x 3 tiles');
+      assert.notEqual(V.color(70,70,clicked),16759152);
+    }
+    if(level<4)mag=press(mag,plus,44);
+  }
+  assert.equal(labels.size,4,'all four levels render distinct digits');
+  assert.equal(press(mag,429,44).zoom,4,'label does not act like a zoom button');
   assert.equal(press(mag,plus,44).zoom,4);
   assert.deepEqual(mag.board,unzoomed,'zoom buttons never edit cells');
   mag=press(mag,273,277);
@@ -89,8 +106,13 @@ try {
   assert.equal(V.color(68,69,mag),16759152);
   assert.equal(V.color(71,72,mag),16759152,'the cell spans 4 x 4 tiles at maximum zoom');
   assert.notEqual(V.color(72,72,mag),16759152);
+  const lost=M.event({$:'Lost',id:0},mag).value;
+  assert.deepEqual(move(lost,290,277).board,mag.board,'a canceled drag cannot paint again on hover');
   assert.deepEqual(press(mag,273,430).board,mag.board,'clicks below the clipped viewport are ignored');
-  mag=press(press(mag,minus,44),minus,44);
+  for(let level=3;level>=1;level--){
+    mag=press(mag,minus,44);
+    assert.equal(mag.zoom,level);
+  }
   assert.equal(mag.zoom,1);
   assert.deepEqual(positions(mag.board),[[49,29]]);
   assert.equal(V.color(65,66,mag),16759152);

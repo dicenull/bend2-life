@@ -48,8 +48,8 @@ def cycle_size(s: State) -> State:
 
 def magnify(more: Bool, z: U32) -> U32:
   match more:
-    case True{}: U32.min(4,U32.shl(z))
-    case False{}: U32.max(1,U32.shr(z))
+    case True{}: U32.inc(U32.min(3,z))
+    case False{}: (U32.max(2,z) - 1 : U32)
 
 def zoom(more: Bool, s: State) -> State:
   match s:
