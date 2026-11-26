@@ -187,103 +187,73 @@ function $next_cell(_alive_0, _neighbors_0) {
   }
 }
 
-function $bit(_row_0, _mask_0) {
-  const _x_0 = ((_row_0 & _mask_0) >>> 0);
-  return $Bool_to_u32((_x_0 !== 0));
-}
-
-function $lanes_for(_word_0, _edge_0) {
-  const _x_0 = ((_word_0 << 1) >>> 0);
-  const _x_1 = ((_edge_0 & 1) >>> 0);
-  const _west_0 = ((_x_0 | _x_1) >>> 0);
-  const _x_2 = ((_edge_0 >>> 1) >>> 0);
-  const _x_3 = ((_x_2 & 1) >>> 0);
-  const _x_4 = ((_word_0 >>> 1) >>> 0);
-  const _x_5 = (31 >= 32 ? 0 : (_x_3 << 31) >>> 0);
-  const _east_0 = ((_x_4 | _x_5) >>> 0);
-  return {$: "lanes", "west": _west_0, "center": _word_0, "east": _east_0};
-}
-
-function $full_count(_row_0, _mask_0) {
-  const _w_0 = _row_0["west"];
-  const _c_0 = _row_0["center"];
-  const _e_0 = _row_0["east"];
-  const _x_0 = $$bit(_w_0, _mask_0);
-  const _x_1 = $$bit(_c_0, _mask_0);
-  const _x_2 = ((_x_0 + _x_1) >>> 0);
-  const _x_3 = $$bit(_e_0, _mask_0);
-  return ((_x_2 + _x_3) >>> 0);
-}
-
-function $scan_word($0, $1, $2, $3, $4, $5) {
-  for (;;) {
-    {
-      const _fuel_0 = $0;
-      const _top_0 = $1;
-      const _mid_0 = $2;
-      const _bottom_0 = $3;
-      const _mask_0 = $4;
-      const _acc_0 = $5;
-      if (_fuel_0 == 0) {
-        return _acc_0;
-      } else {
-        const _rest_0 = (_fuel_0 - 1);
-        const _w_0 = _mid_0["west"];
-        const _c_0 = _mid_0["center"];
-        const _e_0 = _mid_0["east"];
-        const _x_0 = $$bit(_w_0, _mask_0);
-        const _x_1 = $$bit(_e_0, _mask_0);
-        const _x_2 = $$full_count(_top_0, _mask_0);
-        const _x_3 = ((_x_0 + _x_1) >>> 0);
-        const _x_4 = ((_x_2 + _x_3) >>> 0);
-        const _x_5 = $$full_count(_bottom_0, _mask_0);
-        const _n_0 = ((_x_4 + _x_5) >>> 0);
-        const _x_6 = $$bit(_c_0, _mask_0);
-        const _old_0 = (_x_6 !== 0);
-        const _x_7 = $$Bool_to_u32($$next_cell(_old_0, (_n_0 )));
-        const _born_0 = (Math.imul(_x_7, _mask_0) >>> 0);
-        $0 = _rest_0;
-        $1 = _top_0;
-        $2 = {$: "lanes", "west": _w_0, "center": _c_0, "east": _e_0};
-        $3 = _bottom_0;
-        $4 = ((_mask_0 << 1) >>> 0);
-        $5 = ((_acc_0 | _born_0) >>> 0);
-        continue;
-      }
-    }
+function $first_or(_n_0, _row_0, _east_0) {
+  if (_n_0 == 0) {
+    return _east_0;
+  } else {
+    const _b_0 = _row_0["head"];
+    return _b_0;
   }
 }
 
-function $east_row_count(_row_0, _edge_0) {
-  const _x_0 = $$bit(_row_0, 1073741824);
-  const _x_1 = $$bit(_row_0, 2147483648);
+function $count_three(_w_0, _c_0, _e_0) {
+  const _x_0 = $$Bool_to_u32(_w_0);
+  const _x_1 = $$Bool_to_u32(_c_0);
   const _x_2 = ((_x_0 + _x_1) >>> 0);
-  const _x_3 = $$bit(_edge_0, 2);
+  const _x_3 = $$Bool_to_u32(_e_0);
   return ((_x_2 + _x_3) >>> 0);
 }
 
-function $next_east(_top_0, _mid_0, _bottom_0, _te_0, _me_0, _be_0) {
-  const _x_0 = $$bit(_mid_0, 1073741824);
-  const _x_1 = $$bit(_me_0, 2);
-  const _x_2 = $$east_row_count(_top_0, _te_0);
-  const _x_3 = ((_x_0 + _x_1) >>> 0);
-  const _x_4 = ((_x_2 + _x_3) >>> 0);
-  const _x_5 = $$east_row_count(_bottom_0, _be_0);
-  const _n_0 = ((_x_4 + _x_5) >>> 0);
-  const _x_6 = ((_mid_0 & 2147483648) >>> 0);
-  return $next_cell((_x_6 !== 0), (_n_0 ));
+function $scan(_n_0, _top_0, _mid_0, _bot_0, _tw_0, _mw_0, _bw_0, _te_0, _me_0, _be_0) {
+  if (_n_0 == 0) {
+    return {$: "WNil"};
+  } else {
+    const _k_0 = (_n_0 - 1);
+    const _tc_0 = _top_0["head"];
+    const _tr_0 = _top_0["tail"];
+    const _mc_0 = _mid_0["head"];
+    const _mr_0 = _mid_0["tail"];
+    const _bc_0 = _bot_0["head"];
+    const _br_0 = _bot_0["tail"];
+    const _above_0 = $$count_three(_tw_0, _tc_0, $$first_or(_k_0, _tr_0, _te_0));
+    const _x_0 = $$Bool_to_u32(_mw_0);
+    const _x_1 = $$Bool_to_u32($$first_or(_k_0, _mr_0, _me_0));
+    const _beside_0 = ((_x_0 + _x_1) >>> 0);
+    const _below_0 = $$count_three(_bw_0, _bc_0, $$first_or(_k_0, _br_0, _be_0));
+    const _x_2 = ((_above_0 + _beside_0) >>> 0);
+    const _x_3 = ((_x_2 + _below_0) >>> 0);
+    const _alive_0 = $$next_cell(_mc_0, (_x_3 ));
+    return {$: "WCon", "head": _alive_0, "tail": $$scan(_k_0, _tr_0, _mr_0, _br_0, _tc_0, _mc_0, _bc_0, _te_0, _me_0, _be_0)};
+  }
 }
 
-function $pack_east(_low_0, _east_0) {
-  const _x_0 = $$Bool_to_u32(_east_0);
-  const _x_1 = ((_low_0 & 2147483647) >>> 0);
-  const _x_2 = (31 >= 32 ? 0 : (_x_0 << 31) >>> 0);
-  return ((_x_1 | _x_2) >>> 0);
+function $decode_edge_bits(_w_0) {
+  const _west_0 = _w_0["head"];
+  const _t_0 = _w_0["tail"];
+  const _east_0 = _t_0["head"];
+  return {$: "edges", "west": _west_0, "east": _east_0};
 }
 
-function $next_word(_top_0, _mid_0, _bottom_0, _top_edge_0, _mid_edge_0, _bottom_edge_0) {
-  const _low_0 = $$scan_word(31, $$lanes_for(_top_0, _top_edge_0), $$lanes_for(_mid_0, _mid_edge_0), $$lanes_for(_bottom_0, _bottom_edge_0), 1, 0);
-  return $pack_east(_low_0, $$next_east(_top_0, _mid_0, _bottom_0, _top_edge_0, _mid_edge_0, _bottom_edge_0));
+function $decode_edge(_w_0) {
+  const _bits_0 = u32_to_word(_w_0);
+  return $decode_edge_bits(_bits_0);
+}
+
+function $scan_word(_top_0, _mid_0, _bot_0, _te_0, _me_0, _be_0) {
+  const _tw_0 = _te_0["west"];
+  const _tr_0 = _te_0["east"];
+  const _mw_0 = _me_0["west"];
+  const _mr_0 = _me_0["east"];
+  const _bw_0 = _be_0["west"];
+  const _br_0 = _be_0["east"];
+  return word_to_u32($$scan(32, _top_0, _mid_0, _bot_0, _tw_0, _mw_0, _bw_0, _tr_0, _mr_0, _br_0));
+}
+
+function $next_word(_top_0, _mid_0, _bot_0, _te_0, _me_0, _be_0) {
+  const _t_0 = u32_to_word(_top_0);
+  const _m_0 = u32_to_word(_mid_0);
+  const _b_0 = u32_to_word(_bot_0);
+  return $scan_word(_t_0, _m_0, _b_0, $$decode_edge(_te_0), $$decode_edge(_me_0), $$decode_edge(_be_0));
 }
 
 function $next_row(_top_0, _mid_0, _bottom_0) {
@@ -298,22 +268,19 @@ function $Bool_to_u32(_b_0) {
   }
 }
 
-const $$bit = $bit;
-const $$full_count = $full_count;
-const $$next_cell = $next_cell;
 const $$Bool_to_u32 = $Bool_to_u32;
-const $$east_row_count = $east_row_count;
-const $$lanes_for = $lanes_for;
-const $$scan_word = $scan_word;
-const $$next_east = $next_east;export default {
+const $$first_or = $first_or;
+const $$count_three = $count_three;
+const $$next_cell = $next_cell;
+const $$scan = $scan;
+const $$decode_edge = $decode_edge;export default {
   "next_cell": run_lib((a0,a1) => run_loop($next_cell(a0,nat_in(a1))), 2),
-  "bit": run_lib((a0,a1) => run_loop($bit(a0,a1)), 2),
-  "lanes_for": run_lib((a0,a1) => run_loop($lanes_for(a0,a1)), 2),
-  "full_count": run_lib((a0,a1) => run_loop($full_count(a0,a1)), 2),
-  "scan_word": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($scan_word(nat_in(a0),a1,a2,a3,a4,a5)), 6),
-  "east_row_count": run_lib((a0,a1) => run_loop($east_row_count(a0,a1)), 2),
-  "next_east": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($next_east(a0,a1,a2,a3,a4,a5)), 6),
-  "pack_east": run_lib((a0,a1) => run_loop($pack_east(a0,a1)), 2),
+  "first_or": run_lib((a0,a1,a2) => run_loop($first_or(nat_in(a0),a1,a2)), 3),
+  "count_three": run_lib((a0,a1,a2) => run_loop($count_three(a0,a1,a2)), 3),
+  "scan": run_lib((a0,a1,a2,a3,a4,a5,a6,a7,a8,a9) => run_loop($scan(nat_in(a0),a1,a2,a3,a4,a5,a6,a7,a8,a9)), 10),
+  "decode_edge_bits": run_lib((a0) => run_loop($decode_edge_bits(a0)), 1),
+  "decode_edge": run_lib((a0) => run_loop($decode_edge(a0)), 1),
+  "scan_word": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($scan_word(a0,a1,a2,a3,a4,a5)), 6),
   "next_word": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($next_word(a0,a1,a2,a3,a4,a5)), 6),
   "next_row": run_lib((a0,a1,a2) => run_loop($next_row(a0,a1,a2)), 3),
 };

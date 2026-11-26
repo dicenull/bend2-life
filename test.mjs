@@ -18,7 +18,7 @@ function plain(b){
 }
 function board(cells,w=96,h=56){const b=makeBoard(w,h);for(const[x,y] of cells)putCell(b,x,y,1);return b;}
 function gridAt(x,y){return [[x+1,y],[x+2,y+1],[x,y+2],[x+1,y+2],[x+2,y+2]];}
-const windows=[30,62,94]; // every internal boundary of the 128-wide board
+const windows=[30,31,62,63,94,95]; // center a window on both sides of each internal boundary
 for(const left of windows)for(let p=0;p<512;p++){
   const b=board(Array.from({length:9},(_,i)=>[left+i%3,14+Math.floor(i/3)]).filter((_,i)=>p&(1<<i)),128,20);
   assert.deepEqual(next(b).words,plain(b),`neighborhood at x ${left+1}, pattern ${p}`);
@@ -48,4 +48,4 @@ for(let k=0;k<100;k++){
   for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(rand()<p)putCell(a,x,y,1);
   for(let t=0;t<5;t++){const b=next(a);assert.deepEqual(b.words,plain(a),`board ${k} / generation ${t}`);a=b;}
 }
-console.log('PASS: 1536 seam neighborhoods, 500 random-board generations, patterns, resize, and non-wrapping edges');
+console.log('PASS: 3072 seam neighborhoods, 500 random-board generations, patterns, resize, and non-wrapping edges');

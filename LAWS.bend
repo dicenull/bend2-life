@@ -23,41 +23,96 @@ law overcrowding:
   for alive: Bool
   {Life.next_cell(alive, 4n+excess) == False{} : Bool}
 
-# Words store the lowest-index cell first. Read the final constructor,
-# independently of the shift/mask used to write the high bit.
-def last_bit(n: Nat, w: Word(1n+n)) -> Bool:
+# A valid column: proof callers cannot select a bit outside the word.
+type Index.More<-n: Nat> is Data:
+  Here{}
+  There{rest: Index(n)}
+
+def Index(n: Nat) -> Data:
   match n:
     case 0n:
-      match w:
-        case WCon{b, _}:
-          b
+      Empty
     case 1n+k:
-      match w:
-        case WCon{_, t}:
-          last_bit(k, t)
+      Index.More<k>
 
-def east_bit(w: U32) -> Bool:
-  match w:
+def at(+n: Nat, index: Index(n), row: Word(n)) -> Bool:
+  match n:
+    case 0n:
+      match index:
+    case 1n+k:
+      match index row:
+        case Here{} WCon{b, _}:
+          b
+        case There{j} WCon{_, t}:
+          at(k, j, t)
+
+def west_of(+n: Nat, index: Index(n), row: Word(n), west: Bool) -> Bool:
+  match n:
+    case 0n:
+      match index:
+    case 1n+k:
+      match index row:
+        case Here{} WCon{_, _}:
+          west
+        case There{j} WCon{b, t}:
+          west_of(k, j, t, b)
+
+def right_lookup(+n: Nat, row: Word(n), east: Bool) -> Bool:
+  match n:
+    case 0n:
+      east
+    case 1n+k:
+      at(1n+k, Here{}, row)
+
+def east_of(+n: Nat, index: Index(n), row: Word(n), +east: Bool) -> Bool:
+  match n:
+    case 0n:
+      match index:
+    case 1n+k:
+      match index row:
+        case Here{} WCon{_, t}:
+          right_lookup(k, t, east)
+        case There{j} WCon{_, t}:
+          east_of(k, j, t, east)
+
+# One column, specified by individual cell lookups instead of an output scan.
+def reference(+n: Nat, +i: Index(n), +top: Word(n), +mid: Word(n), +bot: Word(n),
+              tw: Bool, mw: Bool, bw: Bool, te: Bool, me: Bool, be: Bool) -> Bool:
+  nw = Bool.to_u32(west_of(n, i, top, tw))
+  nc = Bool.to_u32(at(n, i, top))
+  ne = Bool.to_u32(east_of(n, i, top, te))
+  w = Bool.to_u32(west_of(n, i, mid, mw))
+  e = Bool.to_u32(east_of(n, i, mid, me))
+  sw = Bool.to_u32(west_of(n, i, bot, bw))
+  sc = Bool.to_u32(at(n, i, bot))
+  se = Bool.to_u32(east_of(n, i, bot, be))
+  above = U32.add(U32.add(nw, nc), ne)
+  beside = U32.add(w, e)
+  below = U32.add(U32.add(sw, sc), se)
+  Life.next_cell(at(n, i, mid), U32.to_nat(U32.add(U32.add(above, beside), below)))
+
+def at_word(i: Index(32n), word: U32) -> Bool:
+  match word:
     case U32{bits}:
-      last_bit(31n, bits)
+      at(32n, i, bits)
 
-def count_bit(word: U32, mask: U32) -> U32:
-  Bool.to_u32(U32.is_ne(U32.and(word, mask), 0))
+# Packed edge words supply their western boundary at bit 0 and eastern
+# boundary at bit 1. No other edge-word bits are part of the specification.
+def word_reference(+i: Index(32n), top: U32, mid: U32, bot: U32,
+                   +te: U32, +me: U32, +be: U32) -> Bool:
+  match top mid bot:
+    case U32{t} U32{m} U32{b}:
+      reference(32n, i, t, m, b,
+        at_word(Here{}, te), at_word(Here{}, me), at_word(Here{}, be),
+        at_word(There{Here{}}, te), at_word(There{Here{}}, me), at_word(There{Here{}}, be))
 
-# 3 cells above + 2 beside + 3 below; the middle cell is not counted.
-# Masks 2^30 and 2^31 pick the last two cells of this word.
-# Mask 2 picks the westernmost cell of the right-hand word from each edge.
-def east_reference(+top: U32, +mid: U32, +bottom: U32, te: U32, me: U32, be: U32) -> Bool:
-  above = U32.add(U32.add(count_bit(top, 1073741824), count_bit(top, 2147483648)), count_bit(te, 2))
-  beside = U32.add(count_bit(mid, 1073741824), count_bit(me, 2))
-  below = U32.add(U32.add(count_bit(bottom, 1073741824), count_bit(bottom, 2147483648)), count_bit(be, 2))
-  Life.next_cell(U32.is_ne(U32.and(mid, 2147483648), 0), U32.to_nat(U32.add(U32.add(above, beside), below)))
-
-law east_seam_matches_neighbors:
+law word_matches_eight_neighbors:
+  for +i: Index(32n)
   for +top: U32
   for +mid: U32
-  for +bottom: U32
+  for +bot: U32
   for +te: U32
   for +me: U32
   for +be: U32
-  {east_bit(Life.next_word(top, mid, bottom, te, me, be)) == east_reference(top, mid, bottom, te, me, be) : Bool}
+  {at_word(i, Life.next_word(top, mid, bot, te, me, be))
+    == word_reference(i, top, mid, bot, te, me, be) : Bool}

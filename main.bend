@@ -15,50 +15,58 @@ def next_cell(alive: Bool, neighbors: Nat) -> Bool:
     case 4n+excess:
       False{}
 
-type Lanes is Data:
-  lanes{west: U32, center: U32, east: U32}
 
-def bit(row: U32, mask: U32) -> U32:
-  Bool.to_u32(U32.is_ne(U32.and(row, mask), 0))
-
-def lanes_for(+word: U32, +edge: U32) -> Lanes:
-  west = U32.or(U32.shl(word), U32.and(edge, 1))
-  east = U32.or(U32.shr(word), U32.shln(U32.and(U32.shr(edge), 1), 31n))
-  lanes{west, word, east}
-
-def full_count(row: Lanes, +mask: U32) -> U32:
-  match row:
-    case lanes{w,c,e}:
-      U32.add(U32.add(bit(w, mask), bit(c, mask)), bit(e, mask))
-
-def scan_word(fuel: Nat, +top: Lanes, +mid: Lanes, +bottom: Lanes, +mask: U32, acc: U32) -> U32:
-  match fuel:
+# Each row is stored west-to-east, least-significant bit first.
+def first_or(n: Nat, row: Word(n), east: Bool) -> Bool:
+  match n:
     case 0n:
-      acc
-    case 1n+rest:
-      match mid:
-        case lanes{+w,+c,+e}:
-          n = U32.add(U32.add(full_count(top, mask), U32.add(bit(w, mask), bit(e, mask))),
-            full_count(bottom, mask))
-          old = U32.is_ne(bit(c, mask), 0)
-          born = U32.mul(Bool.to_u32(next_cell(old, U32.to_nat(n))), mask)
-          scan_word(rest, top, lanes{w,c,e}, bottom, U32.shl(mask), U32.or(acc, born))
+      east
+    case 1n+k:
+      match row:
+        case WCon{b, _}:
+          b
 
-# Bit 31 is computed directly: columns 30/31 in this word and column 0
-# of the next word (edge bit 1). The lower scan cannot supply bit 31.
-def east_row_count(+row: U32, edge: U32) -> U32:
-  U32.add(U32.add(bit(row, 1073741824), bit(row, 2147483648)), bit(edge, 2))
+def count_three(w: Bool, c: Bool, e: Bool) -> U32:
+  U32.add(U32.add(Bool.to_u32(w), Bool.to_u32(c)), Bool.to_u32(e))
 
-def next_east(top: U32, +mid: U32, bottom: U32, te: U32, me: U32, be: U32) -> Bool:
-  n = U32.add(U32.add(east_row_count(top, te), U32.add(bit(mid, 1073741824), bit(me, 2))), east_row_count(bottom, be))
-  next_cell(U32.is_ne(U32.and(mid, 2147483648), 0), U32.to_nat(n))
+# Slide the three rows in lockstep, carrying the previous heads.
+# Only the final column needs the right neighbor word.
+def scan(+n: Nat, top: Word(n), mid: Word(n), bot: Word(n),
+         tw: Bool, mw: Bool, bw: Bool, +te: Bool, +me: Bool, +be: Bool) -> Word(n):
+  match n:
+    case 0n:
+      WNil{}
+    case 1n+k:
+      match top mid bot:
+        case WCon{+tc,+tr} WCon{+mc,+mr} WCon{+bc,+br}:
+          above = count_three(tw, tc, first_or(k, tr, te))
+          beside = U32.add(Bool.to_u32(mw), Bool.to_u32(first_or(k, mr, me)))
+          below = count_three(bw, bc, first_or(k, br, be))
+          alive = next_cell(mc, U32.to_nat(U32.add(U32.add(above, beside), below)))
+          WCon{alive, scan(k, tr, mr, br, tc, mc, bc, te, me, be)}
 
-def pack_east(low: U32, east: Bool) -> U32:
-  U32.or(U32.and(low, 2147483647), U32.shln(Bool.to_u32(east), 31n))
+type Edge is Data:
+  edges{west: Bool, east: Bool}
 
-def next_word(+top: U32, +mid: U32, +bottom: U32, +top_edge: U32, +mid_edge: U32, +bottom_edge: U32) -> U32:
-  low = scan_word(31n, lanes_for(top, top_edge), lanes_for(mid, mid_edge), lanes_for(bottom, bottom_edge), 1, 0)
-  pack_east(low, next_east(top, mid, bottom, top_edge, mid_edge, bottom_edge))
+def decode_edge_bits(w: Word(32n)) -> Edge:
+  match w:
+    case WCon{west, WCon{east, _}}:
+      edges{west, east}
+
+def decode_edge(w: U32) -> Edge:
+  match w:
+    case U32{bits}:
+      decode_edge_bits(bits)
+
+def scan_word(top: Word(32n), mid: Word(32n), bot: Word(32n), te: Edge, me: Edge, be: Edge) -> U32:
+  match te me be:
+    case edges{tw,tr} edges{mw,mr} edges{bw,br}:
+      U32{scan(32n, top, mid, bot, tw, mw, bw, tr, mr, br)}
+
+def next_word(top: U32, mid: U32, bot: U32, te: U32, me: U32, be: U32) -> U32:
+  match top mid bot:
+    case U32{t} U32{m} U32{b}:
+      scan_word(t, m, b, decode_edge(te), decode_edge(me), decode_edge(be))
 
 def next_row(top: U32, mid: U32, bottom: U32) -> U32:
   next_word(top, mid, bottom, 0, 0, 0)

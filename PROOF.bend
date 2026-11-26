@@ -17,46 +17,30 @@ def Laws.three_birth_or_survival(alive):
 def Laws.overcrowding(excess, alive):
   {==}
 
-# Low mask: n leading (low-order) ones, then a zero.
-def low_mask(n: Nat) -> Word(1n+n):
+# Here: inspect the current column and its right neighbor (or the boundary).
+# There: slide one column and apply the induction hypothesis to the tails.
+def every_column(+n: Nat, +i: Laws.Index(n), +top: Word(n), +mid: Word(n), +bot: Word(n),
+                 tw: Bool, mw: Bool, bw: Bool, te: Bool, me: Bool, be: Bool)
+    -> {Laws.at(n, i, Life.scan(n, top, mid, bot, tw, mw, bw, te, me, be))
+        == Laws.reference(n, i, top, mid, bot, tw, mw, bw, te, me, be) : Bool}:
   match n:
     case 0n:
-      WCon{False{}, WNil{}}
-    case 1n+k:
-      WCon{True{}, low_mask(k)}
-
-# High bit: n leading (low-order) zeros, then b.
-def high_word(n: Nat, b: Bool) -> Word(1n+n):
-  match n:
-    case 0n:
-      WCon{b, WNil{}}
-    case 1n+k:
-      WCon{False{}, high_word(k, b)}
-
-def last_after_pack(+n: Nat, w: Word(1n+n), +b: Bool) -> {Laws.last_bit(n, Word.or(1n+n, Word.and(1n+n, w, low_mask(n)), high_word(n, b))) == b : Bool}:
-  match n:
-    case 0n:
-      match w b:
-        case WCon{False{}, _} False{}:
+      match i:
+    case 1n:
+      match i top mid bot:
+        case Laws.Here{} WCon{tc,_} WCon{mc,_} WCon{bc,_}:
           {==}
-        case WCon{False{}, _} True{}:
+        case Laws.There{j} _ _ _:
+          match j:
+    case 2n+r:
+      match i top mid bot:
+        case Laws.Here{} WCon{tc,WCon{tn,_}} WCon{mc,WCon{mn,_}} WCon{bc,WCon{bn,_}}:
           {==}
-        case WCon{True{}, _} False{}:
-          {==}
-        case WCon{True{}, _} True{}:
-          {==}
-    case 1n+k:
-      match w:
-        case WCon{_, t}:
-          last_after_pack(k, t, b)
+        case Laws.There{j} WCon{tc,tr} WCon{mc,mr} WCon{bc,br}:
+          every_column(1n+r, j, tr, mr, br, tc, mc, bc, te, me, be)
 
-def east_after_pack(w: U32, +b: Bool) -> {Laws.east_bit(Life.pack_east(w, b)) == b : Bool}:
-  match w b:
-    case U32{bits} False{}:
-      last_after_pack(31n, bits, False{})
-    case U32{bits} True{}:
-      last_after_pack(31n, bits, True{})
-
-def Laws.east_seam_matches_neighbors(top, mid, bottom, te, me, be):
-  east_after_pack(Life.scan_word(31n, Life.lanes_for(top, te), Life.lanes_for(mid, me), Life.lanes_for(bottom, be), 1, 0),
-    Life.next_east(top, mid, bottom, te, me, be))
+def Laws.word_matches_eight_neighbors(i, top, mid, bot, te, me, be):
+  match top mid bot te me be:
+    case U32{t} U32{m} U32{b}
+         U32{WCon{tw,WCon{tr,_}}} U32{WCon{mw,WCon{mr,_}}} U32{WCon{bw,WCon{br,_}}}:
+      every_column(32n, i, t, m, b, tw, mw, bw, tr, mr, br)
