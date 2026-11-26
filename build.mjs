@@ -6,4 +6,8 @@ const read=(name)=>readFileSync(new URL(name,root),'utf8');
 const js=read('life.mjs');
 if(!/export default \{/.test(js))throw Error('ES module default export not found');
 const baked=js.replace(/export default \{/,'return {').replace(/<\/script/gi,'<\\/script');
-writeFileSync(new URL('index.html',root),read('browser.template.html').replace('// BEND_COMPILED_MODULE',()=>baked));
+const board=read('board.mjs').replace(/^export\s+/gm,'');
+const html=read('browser.template.html')
+  .replace('// BEND_COMPILED_MODULE',()=>baked)
+  .replace('// BOARD_MODULE',()=>board);
+writeFileSync(new URL('index.html',root),html);

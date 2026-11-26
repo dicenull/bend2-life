@@ -192,19 +192,30 @@ function $bit(_row_0, _mask_0) {
   return $Bool_to_u32((_x_0 !== 0));
 }
 
-function $side_count(_row_0, _left_0, _right_0) {
-  const _x_0 = $$bit(_row_0, _left_0);
-  const _x_1 = $$bit(_row_0, _right_0);
-  return ((_x_0 + _x_1) >>> 0);
+function $lanes_for(_word_0, _edge_0) {
+  const _x_0 = ((_word_0 << 1) >>> 0);
+  const _x_1 = ((_edge_0 & 1) >>> 0);
+  const _west_0 = ((_x_0 | _x_1) >>> 0);
+  const _x_2 = ((_edge_0 >>> 1) >>> 0);
+  const _x_3 = ((_x_2 & 1) >>> 0);
+  const _x_4 = ((_word_0 >>> 1) >>> 0);
+  const _x_5 = (31 >= 32 ? 0 : (_x_3 << 31) >>> 0);
+  const _east_0 = ((_x_4 | _x_5) >>> 0);
+  return {$: "lanes", "west": _west_0, "center": _word_0, "east": _east_0};
 }
 
-function $full_count(_row_0, _left_0, _center_0, _right_0) {
-  const _x_0 = $$side_count(_row_0, _left_0, _right_0);
-  const _x_1 = $$bit(_row_0, _center_0);
-  return ((_x_0 + _x_1) >>> 0);
+function $full_count(_row_0, _mask_0) {
+  const _w_0 = _row_0["west"];
+  const _c_0 = _row_0["center"];
+  const _e_0 = _row_0["east"];
+  const _x_0 = $$bit(_w_0, _mask_0);
+  const _x_1 = $$bit(_c_0, _mask_0);
+  const _x_2 = ((_x_0 + _x_1) >>> 0);
+  const _x_3 = $$bit(_e_0, _mask_0);
+  return ((_x_2 + _x_3) >>> 0);
 }
 
-function $scan_row($0, $1, $2, $3, $4, $5) {
+function $scan_word($0, $1, $2, $3, $4, $5) {
   for (;;) {
     {
       const _fuel_0 = $0;
@@ -217,22 +228,25 @@ function $scan_row($0, $1, $2, $3, $4, $5) {
         return _acc_0;
       } else {
         const _rest_0 = (_fuel_0 - 1);
-        const _left_0 = ((_mask_0 >>> 1) >>> 0);
-        const _right_0 = ((_mask_0 << 1) >>> 0);
-        const _x_0 = $$full_count(_top_0, _left_0, _mask_0, _right_0);
-        const _x_1 = $$side_count(_mid_0, _left_0, _right_0);
-        const _x_2 = ((_x_0 + _x_1) >>> 0);
-        const _x_3 = $$full_count(_bottom_0, _left_0, _mask_0, _right_0);
-        const _n_0 = ((_x_2 + _x_3) >>> 0);
-        const _x_4 = $$bit(_mid_0, _mask_0);
-        const _old_0 = (_x_4 !== 0);
-        const _x_5 = $$Bool_to_u32($$next_cell(_old_0, (_n_0 )));
-        const _born_0 = (Math.imul(_x_5, _mask_0) >>> 0);
+        const _w_0 = _mid_0["west"];
+        const _c_0 = _mid_0["center"];
+        const _e_0 = _mid_0["east"];
+        const _x_0 = $$bit(_w_0, _mask_0);
+        const _x_1 = $$bit(_e_0, _mask_0);
+        const _x_2 = $$full_count(_top_0, _mask_0);
+        const _x_3 = ((_x_0 + _x_1) >>> 0);
+        const _x_4 = ((_x_2 + _x_3) >>> 0);
+        const _x_5 = $$full_count(_bottom_0, _mask_0);
+        const _n_0 = ((_x_4 + _x_5) >>> 0);
+        const _x_6 = $$bit(_c_0, _mask_0);
+        const _old_0 = (_x_6 !== 0);
+        const _x_7 = $$Bool_to_u32($$next_cell(_old_0, (_n_0 )));
+        const _born_0 = (Math.imul(_x_7, _mask_0) >>> 0);
         $0 = _rest_0;
         $1 = _top_0;
-        $2 = _mid_0;
+        $2 = {$: "lanes", "west": _w_0, "center": _c_0, "east": _e_0};
         $3 = _bottom_0;
-        $4 = _right_0;
+        $4 = ((_mask_0 << 1) >>> 0);
         $5 = ((_acc_0 | _born_0) >>> 0);
         continue;
       }
@@ -240,8 +254,12 @@ function $scan_row($0, $1, $2, $3, $4, $5) {
   }
 }
 
+function $next_word(_top_0, _mid_0, _bottom_0, _top_edge_0, _mid_edge_0, _bottom_edge_0) {
+  return $scan_word(32, $$lanes_for(_top_0, _top_edge_0), $$lanes_for(_mid_0, _mid_edge_0), $$lanes_for(_bottom_0, _bottom_edge_0), 1, 0);
+}
+
 function $next_row(_top_0, _mid_0, _bottom_0) {
-  return $scan_row(32, _top_0, _mid_0, _bottom_0, 1, 0);
+  return $next_word(_top_0, _mid_0, _bottom_0, 0, 0, 0);
 }
 
 function $Bool_to_u32(_b_0) {
@@ -253,14 +271,15 @@ function $Bool_to_u32(_b_0) {
 }
 
 const $$bit = $bit;
-const $$side_count = $side_count;
 const $$full_count = $full_count;
 const $$next_cell = $next_cell;
-const $$Bool_to_u32 = $Bool_to_u32;export default {
+const $$Bool_to_u32 = $Bool_to_u32;
+const $$lanes_for = $lanes_for;export default {
   "next_cell": run_lib((a0,a1) => run_loop($next_cell(a0,nat_in(a1))), 2),
   "bit": run_lib((a0,a1) => run_loop($bit(a0,a1)), 2),
-  "side_count": run_lib((a0,a1,a2) => run_loop($side_count(a0,a1,a2)), 3),
-  "full_count": run_lib((a0,a1,a2,a3) => run_loop($full_count(a0,a1,a2,a3)), 4),
-  "scan_row": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($scan_row(nat_in(a0),a1,a2,a3,a4,a5)), 6),
+  "lanes_for": run_lib((a0,a1) => run_loop($lanes_for(a0,a1)), 2),
+  "full_count": run_lib((a0,a1) => run_loop($full_count(a0,a1)), 2),
+  "scan_word": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($scan_word(nat_in(a0),a1,a2,a3,a4,a5)), 6),
+  "next_word": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($next_word(a0,a1,a2,a3,a4,a5)), 6),
   "next_row": run_lib((a0,a1,a2) => run_loop($next_row(a0,a1,a2)), 3),
 };

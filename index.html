@@ -3,23 +3,35 @@
 <title>ライフゲーム | Bend 2</title>
 <style>
 *{box-sizing:border-box} body{margin:0;background:#111a1a;color:#eef5e5;font:16px/1.5 system-ui,sans-serif}
-main{max-width:630px;margin:auto;padding:22px 16px 32px} header{display:flex;align-items:end;justify-content:space-between;gap:10px}
+main{max-width:1520px;margin:auto;padding:22px 16px 32px} header{display:flex;align-items:end;justify-content:space-between;gap:10px}
 h1{margin:0;font-size:clamp(26px,7vw,40px);letter-spacing:.025em} .tag{font:600 12px monospace;background:#263d35;color:#a9f4bb;border-radius:99px;padding:5px 10px;margin-bottom:6px;white-space:nowrap}
-p{margin:7px 0 15px;color:#bdcfbd;font-size:14px} canvas{display:block;width:100%;height:auto;aspect-ratio:1;background:#162421;border:1px solid #5b766b;cursor:crosshair;touch-action:none}
+p{margin:7px 0 15px;color:#bdcfbd;font-size:14px}
+.stage{--stage-height:72dvh;overflow:auto;max-height:var(--stage-height);background:#162421;border:1px solid #5b766b;border-radius:8px}
+canvas{display:block;width:min(100%,calc(var(--stage-height) * var(--ratio) - 4px));height:auto;margin-inline:auto;cursor:crosshair;touch-action:none}
+.stage.is-zoomed canvas{width:max(100%,var(--zoom-width));margin-inline:0}
+.stage.is-zoomed canvas:active{cursor:grabbing}
+.bar [aria-pressed="true"]{outline:2px solid #9ef0b8;outline-offset:-2px}
+@media(max-width:550px){main{padding:15px 10px 24px}.stage{--stage-height:65dvh}output{margin-left:0;width:100%}}
+
 .bar{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:12px 0} button,select{font:inherit;padding:8px 11px;min-height:42px;border-radius:8px;border:1px solid #5b766b;color:#eef5e5;background:#20332d}
 button{cursor:pointer} #run{color:#0c2015;background:#9ef0b8;border-color:#9ef0b8;font-weight:700} button:focus-visible,select:focus-visible{outline:2px solid #e9e87d;outline-offset:2px}
 output{margin-left:auto;font:13px monospace;color:#c1d9bc} small{color:#bdcfbd}
 </style>
 <main>
 <header><h1>ライフゲーム</h1><span class="tag">BEND 2 · B3/S23</span></header>
-<p>マスをタップ・ドラッグして生き物を配置。次の世代でどう変わるか試してみよう。</p>
-<canvas id="board" width="640" height="640" aria-label="32マス四方の盤面"></canvas>
-<div class="bar">
+<p>マスをタップ・ドラッグして配置。細かいところは拡大し、移動モードで盤面をずらせます。</p>
+<div class="bar" aria-label="操作">
+<select id="board-size" aria-label="盤面サイズ">
+<option value="64x40">64 × 40</option><option value="96x56" selected>96 × 56</option><option value="128x72">128 × 72</option>
+</select>
+<button id="zoom" type="button" aria-pressed="false">拡大</button>
+<button id="pan" type="button" aria-pressed="false" disabled>移動</button>
 <button id="run" type="button">再生</button><button id="step" type="button">1世代進める</button><button id="clear" type="button">消去</button>
 <select id="pattern" aria-label="初期パターン">
 <option value="glider">グライダー</option><option value="blinker">ブリンカー</option><option value="block">ブロック</option><option value="random">ランダム</option>
 </select><button id="preset" type="button">配置</button><output id="status"></output>
 </div>
+<div id="stage" class="stage"><canvas id="board" aria-label="ライフゲームの盤面"></canvas></div>
 <small>誕生：近くに3つ。生存：2つか3つ。盤面の端はつながらない。</small>
 </main>
 <script type="module">
@@ -218,19 +230,30 @@ function $bit(_row_0, _mask_0) {
   return $Bool_to_u32((_x_0 !== 0));
 }
 
-function $side_count(_row_0, _left_0, _right_0) {
-  const _x_0 = $$bit(_row_0, _left_0);
-  const _x_1 = $$bit(_row_0, _right_0);
-  return ((_x_0 + _x_1) >>> 0);
+function $lanes_for(_word_0, _edge_0) {
+  const _x_0 = ((_word_0 << 1) >>> 0);
+  const _x_1 = ((_edge_0 & 1) >>> 0);
+  const _west_0 = ((_x_0 | _x_1) >>> 0);
+  const _x_2 = ((_edge_0 >>> 1) >>> 0);
+  const _x_3 = ((_x_2 & 1) >>> 0);
+  const _x_4 = ((_word_0 >>> 1) >>> 0);
+  const _x_5 = (31 >= 32 ? 0 : (_x_3 << 31) >>> 0);
+  const _east_0 = ((_x_4 | _x_5) >>> 0);
+  return {$: "lanes", "west": _west_0, "center": _word_0, "east": _east_0};
 }
 
-function $full_count(_row_0, _left_0, _center_0, _right_0) {
-  const _x_0 = $$side_count(_row_0, _left_0, _right_0);
-  const _x_1 = $$bit(_row_0, _center_0);
-  return ((_x_0 + _x_1) >>> 0);
+function $full_count(_row_0, _mask_0) {
+  const _w_0 = _row_0["west"];
+  const _c_0 = _row_0["center"];
+  const _e_0 = _row_0["east"];
+  const _x_0 = $$bit(_w_0, _mask_0);
+  const _x_1 = $$bit(_c_0, _mask_0);
+  const _x_2 = ((_x_0 + _x_1) >>> 0);
+  const _x_3 = $$bit(_e_0, _mask_0);
+  return ((_x_2 + _x_3) >>> 0);
 }
 
-function $scan_row($0, $1, $2, $3, $4, $5) {
+function $scan_word($0, $1, $2, $3, $4, $5) {
   for (;;) {
     {
       const _fuel_0 = $0;
@@ -243,22 +266,25 @@ function $scan_row($0, $1, $2, $3, $4, $5) {
         return _acc_0;
       } else {
         const _rest_0 = (_fuel_0 - 1);
-        const _left_0 = ((_mask_0 >>> 1) >>> 0);
-        const _right_0 = ((_mask_0 << 1) >>> 0);
-        const _x_0 = $$full_count(_top_0, _left_0, _mask_0, _right_0);
-        const _x_1 = $$side_count(_mid_0, _left_0, _right_0);
-        const _x_2 = ((_x_0 + _x_1) >>> 0);
-        const _x_3 = $$full_count(_bottom_0, _left_0, _mask_0, _right_0);
-        const _n_0 = ((_x_2 + _x_3) >>> 0);
-        const _x_4 = $$bit(_mid_0, _mask_0);
-        const _old_0 = (_x_4 !== 0);
-        const _x_5 = $$Bool_to_u32($$next_cell(_old_0, (_n_0 )));
-        const _born_0 = (Math.imul(_x_5, _mask_0) >>> 0);
+        const _w_0 = _mid_0["west"];
+        const _c_0 = _mid_0["center"];
+        const _e_0 = _mid_0["east"];
+        const _x_0 = $$bit(_w_0, _mask_0);
+        const _x_1 = $$bit(_e_0, _mask_0);
+        const _x_2 = $$full_count(_top_0, _mask_0);
+        const _x_3 = ((_x_0 + _x_1) >>> 0);
+        const _x_4 = ((_x_2 + _x_3) >>> 0);
+        const _x_5 = $$full_count(_bottom_0, _mask_0);
+        const _n_0 = ((_x_4 + _x_5) >>> 0);
+        const _x_6 = $$bit(_c_0, _mask_0);
+        const _old_0 = (_x_6 !== 0);
+        const _x_7 = $$Bool_to_u32($$next_cell(_old_0, (_n_0 )));
+        const _born_0 = (Math.imul(_x_7, _mask_0) >>> 0);
         $0 = _rest_0;
         $1 = _top_0;
-        $2 = _mid_0;
+        $2 = {$: "lanes", "west": _w_0, "center": _c_0, "east": _e_0};
         $3 = _bottom_0;
-        $4 = _right_0;
+        $4 = ((_mask_0 << 1) >>> 0);
         $5 = ((_acc_0 | _born_0) >>> 0);
         continue;
       }
@@ -266,8 +292,12 @@ function $scan_row($0, $1, $2, $3, $4, $5) {
   }
 }
 
+function $next_word(_top_0, _mid_0, _bottom_0, _top_edge_0, _mid_edge_0, _bottom_edge_0) {
+  return $scan_word(32, $$lanes_for(_top_0, _top_edge_0), $$lanes_for(_mid_0, _mid_edge_0), $$lanes_for(_bottom_0, _bottom_edge_0), 1, 0);
+}
+
 function $next_row(_top_0, _mid_0, _bottom_0) {
-  return $scan_row(32, _top_0, _mid_0, _bottom_0, 1, 0);
+  return $next_word(_top_0, _mid_0, _bottom_0, 0, 0, 0);
 }
 
 function $Bool_to_u32(_b_0) {
@@ -279,63 +309,128 @@ function $Bool_to_u32(_b_0) {
 }
 
 const $$bit = $bit;
-const $$side_count = $side_count;
 const $$full_count = $full_count;
 const $$next_cell = $next_cell;
-const $$Bool_to_u32 = $Bool_to_u32;return {
+const $$Bool_to_u32 = $Bool_to_u32;
+const $$lanes_for = $lanes_for;return {
   "next_cell": run_lib((a0,a1) => run_loop($next_cell(a0,nat_in(a1))), 2),
   "bit": run_lib((a0,a1) => run_loop($bit(a0,a1)), 2),
-  "side_count": run_lib((a0,a1,a2) => run_loop($side_count(a0,a1,a2)), 3),
-  "full_count": run_lib((a0,a1,a2,a3) => run_loop($full_count(a0,a1,a2,a3)), 4),
-  "scan_row": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($scan_row(nat_in(a0),a1,a2,a3,a4,a5)), 6),
+  "lanes_for": run_lib((a0,a1) => run_loop($lanes_for(a0,a1)), 2),
+  "full_count": run_lib((a0,a1) => run_loop($full_count(a0,a1)), 2),
+  "scan_word": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($scan_word(nat_in(a0),a1,a2,a3,a4,a5)), 6),
+  "next_word": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($next_word(a0,a1,a2,a3,a4,a5)), 6),
   "next_row": run_lib((a0,a1,a2) => run_loop($next_row(a0,a1,a2)), 3),
 };
 
 })();
-const N=32, cv=document.querySelector('#board'), ctx=cv.getContext('2d');
+// Flat row-major bitboard. Widths are multiples of 32; one U32 per word.
+function makeBoard(width,height){
+  if(!Number.isSafeInteger(width)||width<32||width%32!==0||!Number.isSafeInteger(height)||height<1)throw RangeError('Invalid board dimensions');
+  return {width,height,stride:width/32,words:new Uint32Array(width/32*height)};
+}
+function getCell(b,x,y){
+  if(x<0||x>=b.width||y<0||y>=b.height)return 0;
+  return (b.words[y*b.stride+(x>>>5)]>>>(x&31))&1;
+}
+function putCell(b,x,y,on){
+  if(x<0||x>=b.width||y<0||y>=b.height)return;
+  const i=y*b.stride+(x>>>5), mask=1<<(x&31);
+  b.words[i]=on?b.words[i]|mask:b.words[i]&~mask;
+}
+function resizeBoard(b,width,height){
+  const out=makeBoard(width,height), stride=Math.min(b.stride,out.stride);
+  for(let y=0;y<Math.min(height,b.height);y++){
+    const start=y*b.stride;
+    out.words.set(b.words.subarray(start,start+stride),y*out.stride);
+  }
+  return out;
+}
+function advance(Life,b){
+  const out=makeBoard(b.width,b.height), a=b.words, s=b.stride;
+  const edge=(i,left,right)=>((left?a[i-1]>>>31:0)|((right?a[i+1]&1:0)<<1));
+  for(let y=0;y<b.height;y++)for(let w=0;w<s;w++){
+    const i=y*s+w, above=i-s, below=i+s, left=w>0,right=w+1<s;
+    out.words[i]=Life.next_word(
+      y>0?a[above]:0,a[i],y+1<b.height?a[below]:0,
+      y>0?edge(above,left,right):0,edge(i,left,right),y+1<b.height?edge(below,left,right):0
+    );
+  }
+  return out;
+}
+
 const el=(id)=>document.getElementById(id);
-const run=el('run'), size=cv.width/N;
-let rows=new Uint32Array(N), generation=0, timer=null, paint=null;
+const cv=el('board'), ctx=cv.getContext('2d'), stage=el('stage'), run=el('run'), px=12;
+let board=makeBoard(96,56), generation=0, timer=null, paint=null, drag=null;
+let zoomed=false, panning=false;
 const patterns={glider:[[1,0],[2,1],[0,2],[1,2],[2,2]],blinker:[[0,1],[1,1],[2,1]],block:[[0,0],[1,0],[0,1],[1,1]]};
+function setGeometry(){
+  cv.width=board.width*px;cv.height=board.height*px;
+  stage.style.setProperty('--zoom-width',board.width*18+'px');
+  stage.style.setProperty('--ratio',String(board.width/board.height));
+  cv.setAttribute('aria-label',`${board.width} × ${board.height} の盤面`);
+}
 function render(){
   ctx.fillStyle='#172521';ctx.fillRect(0,0,cv.width,cv.height);
   ctx.fillStyle='#273d36';
-  for(let i=1;i<N;i++){ctx.fillRect(i*size,0,1,cv.height);ctx.fillRect(0,i*size,cv.width,1);}
+  for(let x=1;x<board.width;x++)ctx.fillRect(x*px,0,1,cv.height);
+  for(let y=1;y<board.height;y++)ctx.fillRect(0,y*px,cv.width,1);
   let alive=0;
   ctx.fillStyle='#a3f3ba';
-  for(let y=0;y<N;y++) for(let x=0;x<N;x++) if((rows[y]>>>x)&1){
-    ctx.fillRect(x*size+2,y*size+2,size-3,size-3);alive++;
+  for(let y=0;y<board.height;y++)for(let w=0;w<board.stride;w++){
+    let v=board.words[y*board.stride+w];
+    while(v){
+      const x=w*32+31-Math.clz32(v&-v);
+      ctx.fillRect(x*px+1,y*px+1,px-1,px-1);alive++;
+      v&=v-1;
+    }
   }
-  el('status').value=`世代 ${generation} / 生存 ${alive}`;
+  el('status').value=`${board.width} × ${board.height} ｜ 世代 ${generation} / 生存 ${alive}`;
 }
-function next(){
-  const old=rows;
-  rows=Uint32Array.from(old,(m,y)=>Life.next_row(old[y-1]??0,m,old[y+1]??0));
-  generation++;render();
-}
+function next(){board=advance(Life,board);generation++;render();}
 function stop(){if(timer!==null){clearInterval(timer);timer=null;}run.textContent='再生';run.setAttribute('aria-pressed','false');}
-function reset(){stop(); rows=new Uint32Array(N);generation=0;}
+function reset(){stop();board=makeBoard(board.width,board.height);generation=0;}
 function place(name){
   reset();
   if(name==='random'){
-    for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(Math.random()<.24) rows[y]|=1<<x;
+    for(let y=0;y<board.height;y++)for(let x=0;x<board.width;x++)if(Math.random()<.24)putCell(board,x,y,1);
   }else{
-    const at=name==='glider'?8:14;
-    for(const [x,y] of patterns[name]) rows[at+y]|=1<<(at+x);
+    const ax=(board.width>>>1)-1,ay=(board.height>>>1)-1;
+    for(const [x,y] of patterns[name])putCell(board,ax+x,ay+y,1);
   }
   render();
 }
+function setMode(on){
+  panning=on;
+  el('pan').textContent=on?'配置に戻る':'移動';
+  el('pan').setAttribute('aria-pressed',String(on));
+  cv.style.cursor=on?'grab':'crosshair';
+}
+el('zoom').addEventListener('click',()=>{
+  zoomed=!zoomed;
+  stage.classList.toggle('is-zoomed',zoomed);
+  el('zoom').textContent=zoomed?'全体表示':'拡大';
+  el('zoom').setAttribute('aria-pressed',String(zoomed));
+  el('pan').disabled=!zoomed;
+  setMode(false);
+  stage.scrollLeft=zoomed?(stage.scrollWidth-stage.clientWidth)/2:0;
+  stage.scrollTop=zoomed?(stage.scrollHeight-stage.clientHeight)/2:0;
+});
+el('pan').addEventListener('click',()=>setMode(!panning));
+el('board-size').addEventListener('change',()=>{
+  stop();const [w,h]=el('board-size').value.split('x').map(Number);
+  board=resizeBoard(board,w,h);setGeometry();render();
+});
 function locate(e){
   const rect=cv.getBoundingClientRect();
-  const x=Math.floor((e.clientX-rect.left)*N/rect.width),y=Math.floor((e.clientY-rect.top)*N/rect.height);
-  return x>=0&&x<N&&y>=0&&y<N?[x,y]:null;
+  const x=Math.floor((e.clientX-rect.left)*board.width/rect.width),y=Math.floor((e.clientY-rect.top)*board.height/rect.height);
+  return x>=0&&x<board.width&&y>=0&&y<board.height?[x,y]:null;
 }
 function applyStroke(p){
   if(!p||!paint||p[0]===paint.x&&p[1]===paint.y)return;
   const [tx,ty]=p;let {x,y}=paint;
   const dx=Math.abs(tx-x),sx=x<tx?1:-1,dy=-Math.abs(ty-y),sy=y<ty?1:-1;let error=dx+dy;
   for(;;){
-    const bit=1<<x;rows[y]=paint.on?rows[y]|bit:rows[y]&~bit;
+    putCell(board,x,y,paint.on);
     if(x===tx&&y===ty)break;
     const e2=2*error;if(e2>=dy){error+=dy;x+=sx;}if(e2<=dx){error+=dx;y+=sy;}
   }
@@ -343,11 +438,19 @@ function applyStroke(p){
 }
 cv.addEventListener('pointerdown',e=>{
   if(!e.isPrimary||e.button!==0)return;
+  if(panning){
+    drag={x:e.clientX,y:e.clientY,left:stage.scrollLeft,top:stage.scrollTop};
+    cv.setPointerCapture(e.pointerId);return;
+  }
   const p=locate(e);if(!p)return;stop();const [x,y]=p;
-  paint={x,y,on:!((rows[y]>>>x)&1)};rows[y]^=1<<x;cv.setPointerCapture(e.pointerId);render();
+  paint={x,y,on:!getCell(board,x,y)};putCell(board,x,y,paint.on);cv.setPointerCapture(e.pointerId);render();
 });
-cv.addEventListener('pointermove',e=>{if(e.isPrimary)applyStroke(locate(e));});
-for(const event of ['pointerup','pointercancel','lostpointercapture'])cv.addEventListener(event,()=>{paint=null;});
+cv.addEventListener('pointermove',e=>{
+  if(!e.isPrimary)return;
+  if(drag){stage.scrollLeft=drag.left+drag.x-e.clientX;stage.scrollTop=drag.top+drag.y-e.clientY;}
+  else applyStroke(locate(e));
+});
+for(const event of ['pointerup','pointercancel','lostpointercapture'])cv.addEventListener(event,e=>{if(e.isPrimary){paint=null;drag=null;}});
 run.addEventListener('click',()=>{
   if(timer!==null){stop();return;}
   timer=setInterval(next,135);run.textContent='停止';run.setAttribute('aria-pressed','true');
@@ -355,6 +458,6 @@ run.addEventListener('click',()=>{
 el('step').addEventListener('click',()=>{stop();next();});
 el('clear').addEventListener('click',()=>{reset();render();});
 el('preset').addEventListener('click',()=>place(el('pattern').value));
-place('glider');
+setGeometry();place('glider');
 </script>
 </html>
