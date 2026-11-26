@@ -126,3 +126,24 @@ def Laws.seam_blinker_turns_vertical():
 
 def Laws.seam_blinker_returns_after_two():
   {==}
+
+def Laws.exterior_is_dead(candidate):
+  {==}
+
+def Laws.interior_is_unchanged(rest, candidate):
+  {==}
+
+def Laws.corner_requires_both_axes(v, h, candidate):
+  match v h:
+    case 0n _:
+      {==}
+    case 1n+vr 0n:
+      {==}
+    case 1n+vr 1n+hr:
+      {==}
+
+def Laws.bounded_word_matches_dead_exterior(left, right, up, down, tl, tc, tr, ml, mc, mr, bl, bc, br):
+  Laws.neighborhood_word_matches_reference(
+    Life.clip(up, Life.clip(left, tl)), Life.clip(up, tc), Life.clip(up, Life.clip(right, tr)),
+    Life.clip(left, ml), mc, Life.clip(right, mr),
+    Life.clip(down, Life.clip(left, bl)), Life.clip(down, bc), Life.clip(down, Life.clip(right, br)))

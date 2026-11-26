@@ -24,11 +24,13 @@ export function advance(Life,b){
   const out=makeBoard(b.width,b.height), a=b.words, s=b.stride;
   for(let y=0;y<b.height;y++)for(let w=0;w<s;w++){
     const i=y*s+w, above=i-s, below=i+s;
-    const left=w>0,right=w+1<s, top=y>0,bottom=y+1<b.height;
-    out.words[i]=Life.next_neighborhood(
-      top&&left?a[above-1]:0,top?a[above]:0,top&&right?a[above+1]:0,
-      left?a[i-1]:0,a[i],right?a[i+1]:0,
-      bottom&&left?a[below-1]:0,bottom?a[below]:0,bottom&&right?a[below+1]:0
+    // These are flat-array candidates, not necessarily geometric neighbors.
+    // Bend masks out any slot that lies beyond one of the four board edges.
+    out.words[i]=Life.next_bounded(
+      w,s-1-w,y,b.height-1-y,
+      a[above-1]??0,a[above]??0,a[above+1]??0,
+      a[i-1]??0,a[i],a[i+1]??0,
+      a[below-1]??0,a[below]??0,a[below+1]??0
     );
   }
   return out;

@@ -11,17 +11,17 @@ type Patch is Data:
 def blank() -> Band:
   band{0, 0}
 
-def step_band(above: Band, middle: Band, below: Band) -> Band:
+def step_band(+up: Nat, +down: Nat, above: Band, middle: Band, below: Band) -> Band:
   match above middle below:
     case band{+tl,+tr} band{+ml,+mr} band{+bl,+br}:
-      band{Life.next_neighborhood(0, tl, tr, 0, ml, mr, 0, bl, br),
-           Life.next_neighborhood(tl, tr, 0, ml, mr, 0, bl, br, 0)}
+      band{Life.next_bounded(0n, 1n, up, down, 0, tl, tr, 0, ml, mr, 0, bl, br),
+           Life.next_bounded(1n, 0n, up, down, tl, tr, 0, ml, mr, 0, bl, br, 0)}
 
 def step(p: Patch) -> Patch:
   match p:
     case patch{+a,+b,+c,+d,+e}:
-      patch{step_band(blank(), a, b), step_band(a, b, c), step_band(b, c, d),
-            step_band(c, d, e), step_band(d, e, blank())}
+      patch{step_band(0n, 4n, blank(), a, b), step_band(1n, 3n, a, b, c), step_band(2n, 2n, b, c, d),
+            step_band(3n, 1n, c, d, e), step_band(4n, 0n, d, e, blank())}
 
 def block() -> Patch:
   # x = 31, 32; y = 2, 3.

@@ -42,7 +42,16 @@ const original=board([[31,39],[32,0],[63,0],[95,55]]);
 const small=resizeBoard(original,64,40), big=resizeBoard(small,128,72);
 assert.equal(getCell(big,31,39),1);assert.equal(getCell(big,32,0),1);assert.equal(getCell(big,63,0),1);
 assert.equal(getCell(big,95,55),0);assert.equal(getCell(big,128,0),0);
-const widths=[[32,32],[64,40],[96,56],[128,72]];
+// Exercise every edge combination even when clipped slots contain live cells.
+const samples=[4294967295, 3, 1, 2147483648, 2147483649, 3, 1073741824, 1, 7];
+for(let mask=0;mask<16;mask++){
+  const [l,r,u,d]=[1,2,4,8].map((bit)=>mask&bit?3:0);
+  const inside=[u&&l,u,u&&r,l,true,r,d&&l,d,d&&r];
+  const clipped=samples.map((word,i)=>inside[i]?word:0);
+  const fixture=makeBoard(96,3);fixture.words.set(clipped);
+  assert.equal(Life.next_bounded(l,r,u,d,...samples),plain(fixture)[4],`dead exterior mask ${mask}`);
+}
+const widths=[[32,1],[64,1],[32,2],[32,32],[64,40],[96,56],[128,72]];
 let state=59613;
 const rand=()=>((state=(Math.imul(state,1664525)+1013904223)>>>0)>>>16)/65536;
 for(let k=0;k<100;k++){

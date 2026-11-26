@@ -168,3 +168,50 @@ law seam_blinker_turns_vertical:
 
 law seam_blinker_returns_after_two:
   {Pattern.step(Pattern.step(Pattern.horizontal())) == Pattern.horizontal() : Pattern.Patch}
+
+# This is a finite-board policy, not an additional B3/S23 rule.
+law exterior_is_dead:
+  for candidate: U32
+  {Life.clip(0n, candidate) == 0 : U32}
+
+law interior_is_unchanged:
+  for rest: Nat
+  for candidate: U32
+  {Life.clip(1n+rest, candidate) == candidate : U32}
+
+# A diagonal must be inside on both axes. In particular, being on an
+# allocated flat-array index is not enough to count as a neighbor.
+def corner_reference(vertical: Nat, horizontal: Nat, candidate: U32) -> U32:
+  match vertical horizontal:
+    case 0n _:
+      0
+    case 1n+v 0n:
+      0
+    case 1n+v 1n+h:
+      candidate
+
+law corner_requires_both_axes:
+  for +v: Nat
+  for +h: Nat
+  for +candidate: U32
+  {Life.clip(v, Life.clip(h, candidate)) == corner_reference(v, h, candidate) : U32}
+
+law bounded_word_matches_dead_exterior:
+  for +left: Nat
+  for +right: Nat
+  for +up: Nat
+  for +down: Nat
+  for +tl: U32
+  for +tc: U32
+  for +tr: U32
+  for +ml: U32
+  for +mc: U32
+  for +mr: U32
+  for +bl: U32
+  for +bc: U32
+  for +br: U32
+  {Life.next_bounded(left, right, up, down, tl, tc, tr, ml, mc, mr, bl, bc, br)
+    == neighborhood_reference(
+      Life.clip(up, Life.clip(left, tl)), Life.clip(up, tc), Life.clip(up, Life.clip(right, tr)),
+      Life.clip(left, ml), mc, Life.clip(right, mr),
+      Life.clip(down, Life.clip(left, bl)), Life.clip(down, bc), Life.clip(down, Life.clip(right, br))) : U32}

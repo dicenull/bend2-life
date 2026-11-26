@@ -87,8 +87,27 @@ def neighbor_edge(left: U32, right: U32) -> Edge:
     case U32{l} U32{r}:
       edges{last_bit(31n, l), first_or(32n, r, False{})}
 
-# The host supplies nine adjacent words, using zero where the board ends.
+# Raw stencil on nine words. The finite-board entry point below clips edges.
 def next_neighborhood(tl: U32, tc: U32, tr: U32, ml: U32, mc: U32, mr: U32, bl: U32, bc: U32, br: U32) -> U32:
   match tc mc bc:
     case U32{t} U32{m} U32{b}:
       scan_word(t, m, b, neighbor_edge(tl, tr), neighbor_edge(ml, mr), neighbor_edge(bl, br))
+
+# Finite-board extension of Conway: if there is no board space in the
+# requested direction, the whole candidate word is dead, regardless of value.
+def clip(distance: Nat, candidate: U32) -> U32:
+  match distance:
+    case 0n:
+      0
+    case 1n+rest:
+      candidate
+
+# Distances are numbers of word-columns (left/right) or rows (up/down)
+# available before reaching the edge. The center itself is on the board.
+def next_bounded(+left: Nat, +right: Nat, +up: Nat, +down: Nat,
+                 tl: U32, tc: U32, tr: U32, ml: U32, mc: U32, mr: U32,
+                 bl: U32, bc: U32, br: U32) -> U32:
+  next_neighborhood(
+    clip(up, clip(left, tl)), clip(up, tc), clip(up, clip(right, tr)),
+    clip(left, ml), mc, clip(right, mr),
+    clip(down, clip(left, bl)), clip(down, bc), clip(down, clip(right, br)))
