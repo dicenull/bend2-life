@@ -32,3 +32,9 @@ law add_zero:
 def add_zero(n):
   Pattern.nat_induction(~KeepsValue, ~one_more, at_zero(), n)
 ```
+
+## 先頭と残りの等式を組み合わせる
+
+`cong2` は、`a = a'` と `b = b'` から、同じ2引数関数について `f(a, b) = f(a', b')` を導く。ライフゲームでは `f` にビット列のコンストラクタを渡す。既存の列の証明で先頭ビットの一致を示し、帰納法で残りのビット列の一致を示して、この2つを結合する。
+
+この組み合わせで `neighborhood_word_matches_reference` を証明した。ブラウザは9区画を選ぶだけで、左隣の最終ビットと右隣の先頭ビットを切り出す処理はBendに移った。JavaScriptが選んだ区画の位置が正しいかは、引き続き盤面テストで確認する。

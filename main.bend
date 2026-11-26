@@ -70,3 +70,25 @@ def next_word(top: U32, mid: U32, bot: U32, te: U32, me: U32, be: U32) -> U32:
 
 def next_row(top: U32, mid: U32, bottom: U32) -> U32:
   next_word(top, mid, bottom, 0, 0, 0)
+
+def last_bit(n: Nat, word: Word(1n+n)) -> Bool:
+  match n:
+    case 0n:
+      match word:
+        case WCon{b, _}:
+          b
+    case 1n+k:
+      match word:
+        case WCon{_, tail}:
+          last_bit(k, tail)
+
+def neighbor_edge(left: U32, right: U32) -> Edge:
+  match left right:
+    case U32{l} U32{r}:
+      edges{last_bit(31n, l), first_or(32n, r, False{})}
+
+# The host supplies nine adjacent words, using zero where the board ends.
+def next_neighborhood(tl: U32, tc: U32, tr: U32, ml: U32, mc: U32, mr: U32, bl: U32, bc: U32, br: U32) -> U32:
+  match tc mc bc:
+    case U32{t} U32{m} U32{b}:
+      scan_word(t, m, b, neighbor_edge(tl, tr), neighbor_edge(ml, mr), neighbor_edge(bl, br))

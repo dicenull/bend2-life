@@ -260,6 +260,38 @@ function $next_row(_top_0, _mid_0, _bottom_0) {
   return $next_word(_top_0, _mid_0, _bottom_0, 0, 0, 0);
 }
 
+function $last_bit($0, $1) {
+  for (;;) {
+    {
+      const _n_0 = $0;
+      const _word_0 = $1;
+      if (_n_0 == 0) {
+        const _b_0 = _word_0["head"];
+        return _b_0;
+      } else {
+        const _k_0 = (_n_0 - 1);
+        const _tail_0 = _word_0["tail"];
+        $0 = _k_0;
+        $1 = _tail_0;
+        continue;
+      }
+    }
+  }
+}
+
+function $neighbor_edge(_left_0, _right_0) {
+  const _l_0 = u32_to_word(_left_0);
+  const _r_0 = u32_to_word(_right_0);
+  return {$: "edges", "west": $$last_bit(31, _l_0), "east": $$first_or(32, _r_0, false)};
+}
+
+function $next_neighborhood(_tl_0, _tc_0, _tr_0, _ml_0, _mc_0, _mr_0, _bl_0, _bc_0, _br_0) {
+  const _t_0 = u32_to_word(_tc_0);
+  const _m_0 = u32_to_word(_mc_0);
+  const _b_0 = u32_to_word(_bc_0);
+  return $scan_word(_t_0, _m_0, _b_0, $$neighbor_edge(_tl_0, _tr_0), $$neighbor_edge(_ml_0, _mr_0), $$neighbor_edge(_bl_0, _br_0));
+}
+
 function $Bool_to_u32(_b_0) {
   if (!_b_0) {
     return 0;
@@ -273,7 +305,9 @@ const $$first_or = $first_or;
 const $$count_three = $count_three;
 const $$next_cell = $next_cell;
 const $$scan = $scan;
-const $$decode_edge = $decode_edge;export default {
+const $$decode_edge = $decode_edge;
+const $$last_bit = $last_bit;
+const $$neighbor_edge = $neighbor_edge;export default {
   "next_cell": run_lib((a0,a1) => run_loop($next_cell(a0,nat_in(a1))), 2),
   "first_or": run_lib((a0,a1,a2) => run_loop($first_or(nat_in(a0),a1,a2)), 3),
   "count_three": run_lib((a0,a1,a2) => run_loop($count_three(a0,a1,a2)), 3),
@@ -283,4 +317,7 @@ const $$decode_edge = $decode_edge;export default {
   "scan_word": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($scan_word(a0,a1,a2,a3,a4,a5)), 6),
   "next_word": run_lib((a0,a1,a2,a3,a4,a5) => run_loop($next_word(a0,a1,a2,a3,a4,a5)), 6),
   "next_row": run_lib((a0,a1,a2) => run_loop($next_row(a0,a1,a2)), 3),
+  "last_bit": run_lib((a0,a1) => run_loop($last_bit(nat_in(a0),a1)), 2),
+  "neighbor_edge": run_lib((a0,a1) => run_loop($neighbor_edge(a0,a1)), 2),
+  "next_neighborhood": run_lib((a0,a1,a2,a3,a4,a5,a6,a7,a8) => run_loop($next_neighborhood(a0,a1,a2,a3,a4,a5,a6,a7,a8)), 9),
 };

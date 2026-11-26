@@ -54,3 +54,66 @@ def Laws.word_matches_eight_neighbors(i, top, mid, bot, te, me, be):
     case U32{t} U32{m} U32{b}
          U32{WCon{tw,WCon{tr,_}}} U32{WCon{mw,WCon{mr,_}}} U32{WCon{bw,WCon{br,_}}}:
       Pattern.nat_induction(~Columns, ~add_column, one_column, 31n)(i, t, m, b, tw, mw, bw, tr, mr, br)
+
+def Row(k: Nat) -> Type:
+  @+top: Word(1n+k) -> @+mid: Word(1n+k) -> @+bot: Word(1n+k) ->
+  @+tw: Bool -> @+mw: Bool -> @+bw: Bool -> @+te: Bool -> @+me: Bool -> @+be: Bool ->
+  {Life.scan(1n+k, top, mid, bot, tw, mw, bw, te, me, be)
+    == Laws.reference_row(1n+k, top, mid, bot, tw, mw, bw, te, me, be) : Word(1n+k)}
+
+def row_base(+top: Word(1n), +mid: Word(1n), +bot: Word(1n),
+             +tw: Bool, +mw: Bool, +bw: Bool, +te: Bool, +me: Bool, +be: Bool)
+    -> {Life.scan(1n, top, mid, bot, tw, mw, bw, te, me, be)
+        == Laws.reference_row(1n, top, mid, bot, tw, mw, bw, te, me, be) : Word(1n)}:
+  match top mid bot:
+    case WCon{t,_} WCon{m,_} WCon{b,_}:
+      {==}
+
+def row_extend(+k: Nat, previous: Row(k),
+               +top: Word(2n+k), +mid: Word(2n+k), +bot: Word(2n+k),
+               +tw: Bool, +mw: Bool, +bw: Bool, +te: Bool, +me: Bool, +be: Bool)
+    -> {Life.scan(2n+k, top, mid, bot, tw, mw, bw, te, me, be)
+        == Laws.reference_row(2n+k, top, mid, bot, tw, mw, bw, te, me, be) : Word(2n+k)}:
+  match top mid bot:
+    case WCon{+a,+t} WCon{+b,+m} WCon{+c,+d}:
+      Pattern.cong2(Bool, Word(1n+k), Word(2n+k), h => t => WCon{h,t},
+        Laws.at(2n+k, Laws.Here{}, Life.scan(2n+k, WCon{a,t}, WCon{b,m}, WCon{c,d}, tw, mw, bw, te, me, be)),
+        Laws.reference(2n+k, Laws.Here{}, WCon{a,t}, WCon{b,m}, WCon{c,d}, tw, mw, bw, te, me, be),
+        Life.scan(1n+k, t, m, d, a, b, c, te, me, be),
+        Laws.reference_row(1n+k, t, m, d, a, b, c, te, me, be),
+        Pattern.nat_induction(~Columns, ~add_column, one_column, 1n+k)(Laws.Here{}, WCon{a,t}, WCon{b,m}, WCon{c,d}, tw, mw, bw, te, me, be),
+        previous(t, m, d, a, b, c, te, me, be))
+
+def final_index_matches_last(+n: Nat, +w: Word(1n+n))
+    -> {Laws.at(1n+n, Laws.final_index(n), w) == Life.last_bit(n, w) : Bool}:
+  match n:
+    case 0n:
+      match w:
+        case WCon{_,_}:
+          {==}
+    case 1n+k:
+      match w:
+        case WCon{_,tail}:
+          final_index_matches_last(k, tail)
+
+def Laws.neighborhood_word_matches_reference(tl, tc, tr, ml, mc, mr, bl, bc, br):
+  match tl tc tr ml mc mr bl bc br:
+    case U32{+l1} U32{+t} U32{WCon{+e1,_}}
+         U32{+l2} U32{+m} U32{WCon{+e2,_}}
+         U32{+l3} U32{+b} U32{WCon{+e3,_}}:
+      +w1 = Laws.at(32n, Laws.final_index(31n), l1)
+      +w2 = Laws.at(32n, Laws.final_index(31n), l2)
+      +w3 = Laws.at(32n, Laws.final_index(31n), l3)
+      %final_index_matches_last(31n, l1) :
+        {U32{Life.scan(32n, t, m, b, _, Life.last_bit(31n, l2), Life.last_bit(31n, l3), e1, e2, e3)}
+          == U32{Laws.reference_row(32n, t, m, b, w1, w2, w3, e1, e2, e3)} : U32}
+      %final_index_matches_last(31n, l2) :
+        {U32{Life.scan(32n, t, m, b, w1, _, Life.last_bit(31n, l3), e1, e2, e3)}
+          == U32{Laws.reference_row(32n, t, m, b, w1, w2, w3, e1, e2, e3)} : U32}
+      %final_index_matches_last(31n, l3) :
+        {U32{Life.scan(32n, t, m, b, w1, w2, _, e1, e2, e3)}
+          == U32{Laws.reference_row(32n, t, m, b, w1, w2, w3, e1, e2, e3)} : U32}
+      Equal.cong(Word(32n), U32, w => U32{w},
+        Life.scan(32n, t, m, b, w1, w2, w3, e1, e2, e3),
+        Laws.reference_row(32n, t, m, b, w1, w2, w3, e1, e2, e3),
+        Pattern.nat_induction(~Row, ~row_extend, row_base, 31n)(t, m, b, w1, w2, w3, e1, e2, e3))

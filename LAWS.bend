@@ -116,3 +116,44 @@ law word_matches_eight_neighbors:
   for +be: U32
   {at_word(i, Life.next_word(top, mid, bot, te, me, be))
     == word_reference(i, top, mid, bot, te, me, be) : Bool}
+
+def final_index(+n: Nat) -> Index(1n+n):
+  match n:
+    case 0n:
+      Here{}
+    case 1n+k:
+      There{final_index(k)}
+
+# Build the reference row from per-column observations. No output bit from the
+# implementation scan is used. After a head, its cell becomes the west input.
+def reference_row(+n: Nat, top: Word(n), mid: Word(n), bot: Word(n),
+                  tw: Bool, mw: Bool, bw: Bool, +te: Bool, +me: Bool, +be: Bool) -> Word(n):
+  match n:
+    case 0n:
+      WNil{}
+    case 1n+k:
+      match top mid bot:
+        case WCon{+a,+t} WCon{+b,+m} WCon{+c,+d}:
+          WCon{reference(1n+k, Here{}, WCon{a,t}, WCon{b,m}, WCon{c,d}, tw, mw, bw, te, me, be),
+            reference_row(k, t, m, d, a, b, c, te, me, be)}
+
+def neighborhood_reference(tl: U32, tc: U32, tr: U32, ml: U32, mc: U32, mr: U32,
+                           bl: U32, bc: U32, br: U32) -> U32:
+  match tc mc bc:
+    case U32{t} U32{m} U32{b}:
+      U32{reference_row(32n, t, m, b,
+        at_word(final_index(31n), tl), at_word(final_index(31n), ml), at_word(final_index(31n), bl),
+        at_word(Here{}, tr), at_word(Here{}, mr), at_word(Here{}, br))}
+
+law neighborhood_word_matches_reference:
+  for +tl: U32
+  for +tc: U32
+  for +tr: U32
+  for +ml: U32
+  for +mc: U32
+  for +mr: U32
+  for +bl: U32
+  for +bc: U32
+  for +br: U32
+  {Life.next_neighborhood(tl, tc, tr, ml, mc, mr, bl, bc, br)
+    == neighborhood_reference(tl, tc, tr, ml, mc, mr, bl, bc, br) : U32}

@@ -22,12 +22,13 @@ export function resizeBoard(b,width,height){
 }
 export function advance(Life,b){
   const out=makeBoard(b.width,b.height), a=b.words, s=b.stride;
-  const edge=(i,left,right)=>((left?a[i-1]>>>31:0)|((right?a[i+1]&1:0)<<1));
   for(let y=0;y<b.height;y++)for(let w=0;w<s;w++){
-    const i=y*s+w, above=i-s, below=i+s, left=w>0,right=w+1<s;
-    out.words[i]=Life.next_word(
-      y>0?a[above]:0,a[i],y+1<b.height?a[below]:0,
-      y>0?edge(above,left,right):0,edge(i,left,right),y+1<b.height?edge(below,left,right):0
+    const i=y*s+w, above=i-s, below=i+s;
+    const left=w>0,right=w+1<s, top=y>0,bottom=y+1<b.height;
+    out.words[i]=Life.next_neighborhood(
+      top&&left?a[above-1]:0,top?a[above]:0,top&&right?a[above+1]:0,
+      left?a[i-1]:0,a[i],right?a[i+1]:0,
+      bottom&&left?a[below-1]:0,bottom?a[below]:0,bottom&&right?a[below+1]:0
     );
   }
   return out;
