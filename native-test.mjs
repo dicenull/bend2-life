@@ -28,7 +28,7 @@ try {
     for(let i=0;i<5;i++){
       const pixels=[];
       for(let y=4;y<18;y++)for(let x=0;x<14;x++){
-        if(V.color(4+20*i+x,y,state)===16763543)pixels.push([x,y]);
+        if(V.color(4+17*i+x,y,state)===16763543)pixels.push([x,y]);
       }
       assert.ok(pixels.length>=20);
       const xs=pixels.map(p=>p[0]), ys=pixels.map(p=>p[1]);
@@ -73,6 +73,31 @@ try {
   assert.notEqual(V.color(16,37,s),V.color(18,37,s),'live/dead pixels differ');
   assert.equal(press(s,22,20).running,true,'play toolbar hit target');
   assert.equal(press(s,342,20).board.width,128,'size toolbar hit target');
+
+  const minus=(4+17*5+7)*4, plus=(4+17*6+7)*4;
+  let mag=key(M.initial(),99);
+  const unzoomed=mag.board;
+  assert.equal(press(mag,minus,44).zoom,1);
+  mag=press(mag,plus,44);
+  assert.equal(mag.zoom,2);
+  mag=press(mag,plus,44);
+  assert.equal(mag.zoom,4);
+  assert.equal(press(mag,plus,44).zoom,4);
+  assert.deepEqual(mag.board,unzoomed,'zoom buttons never edit cells');
+  mag=press(mag,273,277);
+  assert.deepEqual(positions(mag.board),[[49,29]]);
+  assert.equal(V.color(68,69,mag),16759152);
+  assert.equal(V.color(71,72,mag),16759152,'the cell spans 4 x 4 tiles at maximum zoom');
+  assert.notEqual(V.color(72,72,mag),16759152);
+  assert.deepEqual(press(mag,273,430).board,mag.board,'clicks below the clipped viewport are ignored');
+  mag=press(press(mag,minus,44),minus,44);
+  assert.equal(mag.zoom,1);
+  assert.deepEqual(positions(mag.board),[[49,29]]);
+  assert.equal(V.color(65,66,mag),16759152);
+  assert.equal(key(mag,61).zoom,2);
+  const playing=key(mag,32), increased=press(playing,plus,44);
+  assert.equal(increased.running,true);
+  assert.equal(increased.due,playing.due);
 
   let edge=G.empty(64,40);
   for(const y of [19,20,21])edge=G.paint(edge,63,y,true);
