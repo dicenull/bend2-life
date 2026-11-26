@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ライフゲーム | Bend 2</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#111a1a;color:#eef5e5;font:16px/1.5 system-ui,sans-serif}
+main{max-width:630px;margin:auto;padding:22px 16px 32px} header{display:flex;align-items:end;justify-content:space-between;gap:10px}
+h1{margin:0;font-size:clamp(26px,7vw,40px);letter-spacing:.025em} .tag{font:600 12px monospace;background:#263d35;color:#a9f4bb;border-radius:99px;padding:5px 10px;margin-bottom:6px;white-space:nowrap}
+p{margin:7px 0 15px;color:#bdcfbd;font-size:14px} canvas{display:block;width:100%;height:auto;aspect-ratio:1;background:#162421;border:1px solid #5b766b;cursor:crosshair;touch-action:none}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:12px 0} button,select{font:inherit;padding:8px 11px;min-height:42px;border-radius:8px;border:1px solid #5b766b;color:#eef5e5;background:#20332d}
+button{cursor:pointer} #run{color:#0c2015;background:#9ef0b8;border-color:#9ef0b8;font-weight:700} button:focus-visible,select:focus-visible{outline:2px solid #e9e87d;outline-offset:2px}
+output{margin-left:auto;font:13px monospace;color:#c1d9bc} small{color:#bdcfbd}
+</style>
+<main>
+<header><h1>ライフゲーム</h1><span class="tag">BEND 2 · B3/S23</span></header>
+<p>マスをタップ・ドラッグして生き物を配置。次の世代でどう変わるか試してみよう。</p>
+<canvas id="board" width="640" height="640" aria-label="32マス四方の盤面"></canvas>
+<div class="bar">
+<button id="run" type="button">再生</button><button id="step" type="button">1世代進める</button><button id="clear" type="button">消去</button>
+<select id="pattern" aria-label="初期パターン">
+<option value="glider">グライダー</option><option value="blinker">ブリンカー</option><option value="block">ブロック</option><option value="random">ランダム</option>
+</select><button id="preset" type="button">配置</button><output id="status"></output>
+</div>
+<small>誕生：近くに3つ。生存：2つか3つ。盤面の端はつながらない。</small>
+</main>
+<script type="module">
+const Life = (() => {
+// BEND_COMPILED_MODULE
+})();
+const N=32, cv=document.querySelector('#board'), ctx=cv.getContext('2d');
+const el=(id)=>document.getElementById(id);
+const run=el('run'), size=cv.width/N;
+let rows=new Uint32Array(N), generation=0, timer=null, paint=null;
+const patterns={glider:[[1,0],[2,1],[0,2],[1,2],[2,2]],blinker:[[0,1],[1,1],[2,1]],block:[[0,0],[1,0],[0,1],[1,1]]};
+function render(){
+  ctx.fillStyle='#172521';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.fillStyle='#273d36';
+  for(let i=1;i<N;i++){ctx.fillRect(i*size,0,1,cv.height);ctx.fillRect(0,i*size,cv.width,1);}
+  let alive=0;
+  ctx.fillStyle='#a3f3ba';
+  for(let y=0;y<N;y++) for(let x=0;x<N;x++) if((rows[y]>>>x)&1){
+    ctx.fillRect(x*size+2,y*size+2,size-3,size-3);alive++;
+  }
+  el('status').value=`世代 ${generation} / 生存 ${alive}`;
+}
+function next(){
+  const old=rows;
+  rows=Uint32Array.from(old,(m,y)=>Life.next_row(old[y-1]??0,m,old[y+1]??0));
+  generation++;render();
+}
+function stop(){if(timer!==null){clearInterval(timer);timer=null;}run.textContent='再生';run.setAttribute('aria-pressed','false');}
+function reset(){stop(); rows=new Uint32Array(N);generation=0;}
+function place(name){
+  reset();
+  if(name==='random'){
+    for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(Math.random()<.24) rows[y]|=1<<x;
+  }else{
+    const at=name==='glider'?8:14;
+    for(const [x,y] of patterns[name]) rows[at+y]|=1<<(at+x);
+  }
+  render();
+}
+function locate(e){
+  const rect=cv.getBoundingClientRect();
+  const x=Math.floor((e.clientX-rect.left)*N/rect.width),y=Math.floor((e.clientY-rect.top)*N/rect.height);
+  return x>=0&&x<N&&y>=0&&y<N?[x,y]:null;
+}
+function applyStroke(p){
+  if(!p||!paint||p[0]===paint.x&&p[1]===paint.y)return;
+  const [tx,ty]=p;let {x,y}=paint;
+  const dx=Math.abs(tx-x),sx=x<tx?1:-1,dy=-Math.abs(ty-y),sy=y<ty?1:-1;let error=dx+dy;
+  for(;;){
+    const bit=1<<x;rows[y]=paint.on?rows[y]|bit:rows[y]&~bit;
+    if(x===tx&&y===ty)break;
+    const e2=2*error;if(e2>=dy){error+=dy;x+=sx;}if(e2<=dx){error+=dx;y+=sy;}
+  }
+  paint.x=tx;paint.y=ty;render();
+}
+cv.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||e.button!==0)return;
+  const p=locate(e);if(!p)return;stop();const [x,y]=p;
+  paint={x,y,on:!((rows[y]>>>x)&1)};rows[y]^=1<<x;cv.setPointerCapture(e.pointerId);render();
+});
+cv.addEventListener('pointermove',e=>{if(e.isPrimary)applyStroke(locate(e));});
+for(const event of ['pointerup','pointercancel','lostpointercapture'])cv.addEventListener(event,()=>{paint=null;});
+run.addEventListener('click',()=>{
+  if(timer!==null){stop();return;}
+  timer=setInterval(next,135);run.textContent='停止';run.setAttribute('aria-pressed','true');
+});
+el('step').addEventListener('click',()=>{stop();next();});
+el('clear').addEventListener('click',()=>{reset();render();});
+el('preset').addEventListener('click',()=>place(el('pattern').value));
+place('glider');
+</script>
+</html>
