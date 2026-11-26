@@ -3,23 +3,29 @@ import ./native-board.bend as Grid
 import ./native-layout.bend as Layout
 import ./native-state.bend as Model
 
-# Small pixel glyphs, lowest bit at their top left.
+# Center a 5 x 5 glyph at 2x scale inside each 14 x 14 tile button.
 def icon(i: U32, running: Bool, width: U32) -> U32:
   match i running width:
     case 0 True{} _: 29224827
-    case 0 False{} _: 1154145
+    case 0 False{} _: 1309921
     case 1 _ _: 18472561
     case 2 _ _: 15018990
-    case 3 _ _: 7298
-    case _ _ 64: 14815428
-    case _ _ 96: 14760206
-    case _ _ _: 14956814
+    case 3 _ _: 22036484
+    case _ _ 64: 32641220
+    case _ _ 96: 32553487
+    case _ _ _: 16267791
 
-def button_face(+i: U32, +lx: U32, +y: U32, running: Bool, width: U32) -> U32:
-  +face = Bool.pick(U32, (U32.is_eq(lx,0) || U32.is_eq(lx,13) || U32.is_eq(y,4) || U32.is_eq(y,17)), 4015707, 2435391)
-  +in_icon = Layout.in_area(lx,y,4,8,5,5)
-  +bit = U32.and(U32.shrn(icon(i,running,width),U32.to_nat((5 * (y - 8) + lx - 4 : U32))),1)
-  Bool.pick(U32, Bool.and(in_icon,U32.is_ne(bit,0)), 16763543, face)
+def glyph_on(inside: Bool, glyph: U32, x: U32, y: U32) -> Bool:
+  match inside:
+    case False{}: False{}
+    case True{}:
+      shift = (5 * U32.shr((y - 6 : U32)) + U32.shr((x - 2 : U32)) : U32)
+      U32.is_ne(U32.and(U32.shrn(glyph, U32.to_nat(shift)),1),0)
+
+def button_face(i: U32, +lx: U32, +y: U32, running: Bool, width: U32) -> U32:
+  face = Bool.pick(U32, (U32.is_eq(lx,0) || U32.is_eq(lx,13) || U32.is_eq(y,4) || U32.is_eq(y,17)), 4015707, 2435391)
+  on = glyph_on(Layout.in_area(lx,y,2,6,10,10), icon(i,running,width),lx,y)
+  Bool.pick(U32,on,16763543,face)
 
 def header(at: Maybe<U32>, x: U32, +y: U32, running: Bool, width: U32) -> U32:
   match at:

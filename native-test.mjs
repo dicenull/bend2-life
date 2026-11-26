@@ -22,6 +22,20 @@ try {
   const cells=(b)=>Array.from({length:b.width*b.height},(_,i)=>G.get(b,i%b.width,Math.floor(i/b.width)));
   const positions=(b)=>cells(b).flatMap((v,i)=>v?[[i%b.width,Math.floor(i/b.width)]]:[]);
 
+  // Each actual glyph is centered, including pause and every size digit.
+  for(const preset of [49,50,51])for(const running of [false,true]){
+    const paused=key(M.initial(),preset), state=running?key(paused,32):paused;
+    for(let i=0;i<5;i++){
+      const pixels=[];
+      for(let y=4;y<18;y++)for(let x=0;x<14;x++){
+        if(V.color(4+20*i+x,y,state)===16763543)pixels.push([x,y]);
+      }
+      assert.ok(pixels.length>=20);
+      const xs=pixels.map(p=>p[0]), ys=pixels.map(p=>p[1]);
+      assert.deepEqual([Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)],[2,6,11,15]);
+    }
+  }
+
   const nil={$:'Nil'};
   const batch=(e)=>({$:'Con',head:e,tail:nil});
   let s=M.initial();
