@@ -29,8 +29,8 @@ canvas{display:block;width:min(100%,calc(var(--stage-height) * var(--ratio) - 4p
   <div class="board-frame">
     <div class="toolbar" role="group" aria-label="操作">
       <div class="tool-group" role="group" aria-label="再生操作">
-        <button id="run" class="icon" type="button" aria-label="再生" title="再生" aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.5v15l12-7.5Z" fill="currentColor"/></svg><svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14m8-14v14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
-        <button id="step" class="icon" type="button" aria-label="1世代進める" title="1世代進める"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14l11-7ZM19 5v14" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="run" class="icon" type="button" aria-label="再生" aria-keyshortcuts="Space" title="再生" aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.5v15l12-7.5Z" fill="currentColor"/></svg><svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14m8-14v14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
+        <button id="step" class="icon" type="button" aria-label="1世代進める" aria-keyshortcuts="ArrowRight" title="1世代進める"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14l11-7ZM19 5v14" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button id="clear" class="icon" type="button" aria-label="盤面を消去" title="盤面を消去"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M9 7V4h6v3m-8 0 1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
       <div class="tool-group" role="group" aria-label="盤面設定">
@@ -44,7 +44,7 @@ canvas{display:block;width:min(100%,calc(var(--stage-height) * var(--ratio) - 4p
       </div>
       <output id="status" aria-live="off"></output>
     </div>
-    <div id="stage" class="stage"><canvas id="board" aria-label="ライフゲームの盤面"></canvas></div>
+    <div id="stage" class="stage"><canvas id="board" tabindex="0" aria-label="ライフゲームの盤面"></canvas></div>
   </div>
 </main>
 <script type="module">
@@ -145,11 +145,23 @@ cv.addEventListener('pointermove',e=>{
   else applyStroke(locate(e));
 });
 for(const event of ['pointerup','pointercancel','lostpointercapture'])cv.addEventListener(event,e=>{if(e.isPrimary){paint=null;drag=null;}});
-run.addEventListener('click',()=>{
+function toggleRun(){
   if(timer!==null){stop();return;}
   timer=setInterval(next,135);run.title='停止';run.setAttribute('aria-label','停止');run.setAttribute('aria-pressed','true');
+}
+function stepOnce(){stop();next();}
+run.addEventListener('click',toggleRun);
+el('step').addEventListener('click',stepOnce);
+document.addEventListener('keydown',e=>{
+  if(e.defaultPrevented||e.isComposing||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;
+  const target=e.target;
+  if(target.isContentEditable||target.closest?.('input,select,textarea'))return;
+  if(e.key===' '&&target.closest?.('button,a[href]'))return; // Preserve native activation.
+  if(e.key!==' '&&e.key!=='ArrowRight')return;
+  e.preventDefault();
+  if(e.repeat)return;
+  if(e.key===' ')toggleRun();else stepOnce();
 });
-el('step').addEventListener('click',()=>{stop();next();});
 el('clear').addEventListener('click',()=>{reset();render();});
 el('preset').addEventListener('click',()=>place(el('pattern').value));
 setGeometry();place('glider');
