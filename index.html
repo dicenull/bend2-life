@@ -2,37 +2,107 @@
 <html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ライフゲーム | Bend 2</title>
 <style>
-*{box-sizing:border-box} body{margin:0;background:#111a1a;color:#eef5e5;font:16px/1.5 system-ui,sans-serif}
-main{max-width:1520px;margin:auto;padding:22px 16px 32px} header{display:flex;align-items:end;justify-content:space-between;gap:10px}
-h1{margin:0;font-size:clamp(26px,7vw,40px);letter-spacing:.025em} .tag{font:600 12px monospace;background:#263d35;color:#a9f4bb;border-radius:99px;padding:5px 10px;margin-bottom:6px;white-space:nowrap}
-p{margin:7px 0 15px;color:#bdcfbd;font-size:14px}
-.stage{--stage-height:72dvh;overflow:auto;max-height:var(--stage-height);background:#162421;border:1px solid #5b766b;border-radius:8px}
+:root{
+  color-scheme:light;--paper:#e9edf8;--panel:#f8faff;--ink:#202743;--muted:#4c5875;
+  --line:#cbd4e7;--action:#343b82;--accent:#ffba70;--scope:#171d38;
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink)}
+main{max-width:1540px;margin:auto;padding:24px clamp(14px,3vw,42px) 26px}
+header{display:flex;align-items:center;gap:15px;margin-bottom:19px}
+.emblem{display:grid;place-items:center;flex:0 0 46px;height:46px;border-radius:12px;background:var(--scope);color:var(--accent)}
+.emblem svg{width:27px;height:27px}
+h1{margin:0;font-size:clamp(1.5rem,3vw,2.3rem);line-height:1.2;letter-spacing:.025em}
+.subtitle{margin:4px 0 0;color:var(--muted);font-size:.85rem}
+.rule{margin-left:auto;padding:4px 9px;border:1px solid #b1bddb;border-radius:5px;color:#3b4770;font:600 .75rem/1.5 ui-monospace,monospace;white-space:nowrap}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 264px;gap:18px;align-items:start}
+.board-frame{min-width:0;margin:0;overflow:hidden;border-radius:13px;background:var(--scope);border:1px solid #252e52;box-shadow:0 10px 22px #20274924}
+.board-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:1px solid #394469;padding:9px 14px;background:#232b4a;color:#edf0fb}
+.view-tools{display:flex;gap:5px;margin-left:auto}.view-tools button{min-height:36px;color:#eef1ff;background:#303b5e;border-color:#556386}.view-tools button:enabled:hover{background:#425179}.view-tools button[aria-pressed="true"]{color:#33233b;background:#ffba70;border-color:#ffba70}.view-tools button:disabled{opacity:.62}
+.board-head strong{font-size:.84rem;display:flex;align-items:center;gap:8px}
+.signal{width:8px;height:8px;background:var(--accent);display:inline-block;border-radius:2px}
+output{color:#d9e2ff;font:600 .75rem/1.5 ui-monospace,"SF Mono","Hiragino Sans",monospace;font-variant-numeric:tabular-nums}
+.stage{--stage-height:68dvh;overflow:auto;max-height:var(--stage-height);background:var(--scope)}
 canvas{display:block;width:min(100%,calc(var(--stage-height) * var(--ratio) - 4px));height:auto;margin-inline:auto;cursor:crosshair;touch-action:none}
 .stage.is-zoomed canvas{width:max(100%,var(--zoom-width));margin-inline:0}
-.stage.is-zoomed canvas:active{cursor:grabbing}
-.bar [aria-pressed="true"]{outline:2px solid #9ef0b8;outline-offset:-2px}
-@media(max-width:550px){main{padding:15px 10px 24px}.stage{--stage-height:65dvh}output{margin-left:0;width:100%}}
-
-.bar{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:12px 0} button,select{font:inherit;padding:8px 11px;min-height:42px;border-radius:8px;border:1px solid #5b766b;color:#eef5e5;background:#20332d}
-button{cursor:pointer} #run{color:#0c2015;background:#9ef0b8;border-color:#9ef0b8;font-weight:700} button:focus-visible,select:focus-visible{outline:2px solid #e9e87d;outline-offset:2px}
-output{margin-left:auto;font:13px monospace;color:#c1d9bc} small{color:#bdcfbd}
+.transport{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;background:#232b4a;border-top:1px solid #394469}
+.controls{padding:3px 15px;background:var(--panel);border:1px solid var(--line);border-radius:11px}
+.control-group{padding:13px 0}
+.control-group+.control-group{border-top:1px solid var(--line)}
+.control-group h2,.control-group label{font-weight:700;font-size:.84rem;margin:0 0 8px;display:block}
+.control-group p{font-size:.78rem;color:var(--muted);margin:8px 0 0}
+.pair{display:flex;gap:6px}
+.pair>*{flex:1;min-width:0}
+.pair select{flex:1.6}
+select{width:100%}
+button,select{font:inherit;font-size:.84rem;font-weight:600;min-height:42px;padding:7px 9px;color:var(--ink);background:#f2f5ff;border:1px solid #b2bed9;border-radius:6px}
+button{cursor:pointer}
+button:enabled:hover,select:hover{background:#e3e9fa}
+button:active{transform:translateY(1px)}
+button:disabled{cursor:default;color:#5b6480;background:#edf0f7;border-color:#d2daea}
+button:focus-visible,select:focus-visible{outline:3px solid #685dda;outline-offset:2px}
+button[aria-pressed="true"]{background:#343b82;color:white;border-color:#343b82}
+button[aria-pressed="true"]:hover{background:#464f9f}
+#run,#run[aria-pressed="true"]{min-width:84px;background:var(--accent);color:#38223a;border-color:transparent;font-weight:800}
+#run:hover{background:#ffd19d}
+#step,#clear{color:#eef1ff;background:#303b5e;border-color:#556386}
+#step:hover,#clear:hover{background:#425179}
+#clear{margin-left:auto}
+.rules-note{font-size:.78rem;margin:12px 2px 0;color:var(--muted)}
+.rules-note b{color:var(--ink);margin-right:.4em}
+@media(max-width:950px){
+  .workspace{grid-template-columns:1fr;gap:12px}
+  .controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .control-group+.control-group{border-top:0;border-left:1px solid var(--line);padding-left:12px}
+}
+@media(max-width:550px){
+  main{padding-top:14px}header{gap:10px;margin-bottom:12px}.emblem{flex-basis:39px;height:39px}
+  .stage{--stage-height:61dvh}.controls{display:block}.view-tools{width:100%;margin:0}.view-tools button{min-height:42px}
+  .control-group+.control-group{border-top:1px solid var(--line);border-left:0;padding-left:0}
+}
+@media(prefers-reduced-motion:reduce){button:active{transform:none}}
 </style>
 <main>
-<header><h1>ライフゲーム</h1><span class="tag">BEND 2 · B3/S23</span></header>
-<p>マスをタップ・ドラッグして配置。細かいところは拡大し、移動モードで盤面をずらせます。</p>
-<div class="bar" aria-label="操作">
-<select id="board-size" aria-label="盤面サイズ">
-<option value="64x40">64 × 40</option><option value="96x56" selected>96 × 56</option><option value="128x72">128 × 72</option>
-</select>
-<button id="zoom" type="button" aria-pressed="false">拡大</button>
-<button id="pan" type="button" aria-pressed="false" disabled>移動</button>
-<button id="run" type="button">再生</button><button id="step" type="button">1世代進める</button><button id="clear" type="button">消去</button>
-<select id="pattern" aria-label="初期パターン">
-<option value="glider">グライダー</option><option value="blinker">ブリンカー</option><option value="block">ブロック</option><option value="random">ランダム</option>
-</select><button id="preset" type="button">配置</button><output id="status"></output>
-</div>
-<div id="stage" class="stage"><canvas id="board" aria-label="ライフゲームの盤面"></canvas></div>
-<small>誕生：近くに3つ。生存：2つか3つ。盤面の端はつながらない。</small>
+  <header>
+    <div class="emblem" aria-hidden="true"><svg viewBox="0 0 27 27" fill="currentColor"><rect x="10" y="2" width="6" height="6" rx="1"/><rect x="19" y="10" width="6" height="6" rx="1"/><rect x="1" y="19" width="6" height="6" rx="1"/><rect x="10" y="19" width="6" height="6" rx="1"/><rect x="19" y="19" width="6" height="6" rx="1"/></svg></div>
+    <div><h1>ライフゲーム</h1><p class="subtitle">セルを置いて、世代ごとの変化を見る。</p></div>
+    <span class="rule" title="Conwayのルール">B3/S23</span>
+  </header>
+  <div class="workspace">
+    <figure class="board-frame">
+      <figcaption class="board-head"><strong><span class="signal" aria-hidden="true"></span>観察盤</strong><output id="status" aria-live="off"></output>
+        <div class="view-tools" role="group" aria-label="盤面表示">
+          <button id="zoom" type="button" aria-pressed="false">拡大</button>
+          <button id="pan" type="button" aria-pressed="false" disabled>移動</button>
+        </div>
+      </figcaption>
+      <div id="stage" class="stage"><canvas id="board" aria-label="ライフゲームの盤面"></canvas></div>
+      <div class="transport" role="group" aria-label="再生操作">
+        <button id="run" type="button">再生</button><button id="step" type="button">1世代進める</button><button id="clear" type="button">盤面を消去</button>
+      </div>
+    </figure>
+    <aside class="controls" aria-label="盤面の設定">
+      <div class="control-group">
+        <label for="board-size">盤面サイズ</label>
+        <select id="board-size">
+          <option value="64x40">64 × 40</option><option value="96x56" selected>96 × 56</option><option value="128x72">128 × 72</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label for="pattern">初期パターン</label>
+        <div class="pair">
+          <select id="pattern"><option value="glider">グライダー</option><option value="blinker">ブリンカー</option><option value="block">ブロック</option><option value="random">ランダム</option></select>
+          <button id="preset" type="button">配置</button>
+        </div>
+      </div>
+      <div class="control-group">
+        <h2>盤面の操作</h2>
+        <p>タップ・ドラッグでセルを編集。拡大中は「移動」で盤面をずらせます。</p>
+      </div>
+    </aside>
+  </div>
+  <p class="rules-note"><b>誕生</b>近くに3つ。 <b>生存</b>2つか3つ。盤面の端はつながりません。</p>
 </main>
 <script type="module">
 const Life = (() => {
@@ -370,12 +440,12 @@ function setGeometry(){
   cv.setAttribute('aria-label',`${board.width} × ${board.height} の盤面`);
 }
 function render(){
-  ctx.fillStyle='#172521';ctx.fillRect(0,0,cv.width,cv.height);
-  ctx.fillStyle='#273d36';
+  ctx.fillStyle='#171d38';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.fillStyle='#293252';
   for(let x=1;x<board.width;x++)ctx.fillRect(x*px,0,1,cv.height);
   for(let y=1;y<board.height;y++)ctx.fillRect(0,y*px,cv.width,1);
   let alive=0;
-  ctx.fillStyle='#a3f3ba';
+  ctx.fillStyle='#ffba70';
   for(let y=0;y<board.height;y++)for(let w=0;w<board.stride;w++){
     let v=board.words[y*board.stride+w];
     while(v){
