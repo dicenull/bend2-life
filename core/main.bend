@@ -103,3 +103,17 @@ def next_bounded(+left: Nat, +right: Nat, +up: Nat, +down: Nat,
     clip(up, clip(left, tl)), clip(up, tc), clip(up, clip(right, tr)),
     clip(left, ml), mc, clip(right, mr),
     clip(down, clip(left, bl)), clip(down, bc), clip(down, clip(right, br)))
+
+def wrap_before(+before: Nat, +after: Nat) -> Nat:
+  match before:
+    case 0n:
+      after
+    case 1n+i:
+      i
+
+def wrap_after(+before: Nat, +after: Nat) -> Nat:
+  match after:
+    case 0n:
+      0n
+    case 1n+rest:
+      1n+before

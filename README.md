@@ -4,7 +4,7 @@ Conwayのライフゲーム。Web版とMac版は、盤面を1世代進める [Be
 
 ## 起動
 
-- **Web:** リポジトリを取得して [`web/index.html`](web/index.html) をブラウザで開きます。
+- **Web:** [ブラウザで遊ぶ](https://bend2-life.dicenull-dev.workers.dev/)
 - **Mac:** Bend 2とXcode Command Line Toolsを用意して、リポジトリ直下で実行します。
 
 ```sh
@@ -14,9 +14,9 @@ open 'desktop/.build/Bend 2 Life.app'
 
 ## LAW
 
-[`LAWS.bend`](LAWS.bend) の2本を [`PROOF.bend`](PROOF.bend) で検証します。
+[`LAWS.bend`](LAWS.bend) を [`PROOF.bend`](PROOF.bend) で検証します。
 
-[証明とテストの分け方](docs/proof-vs-tests.md) · [証明パターン](docs/proof-patterns.md)
+[盤面の端をどう扱うか](docs/edge-comparison.md) · [証明とテストの分け方](docs/proof-vs-tests.md) · [証明パターン](docs/proof-patterns.md)
 
 ## ビルドと検証
 

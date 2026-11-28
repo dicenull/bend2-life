@@ -304,6 +304,23 @@ function $next_bounded(_left_0, _right_0, _up_0, _down_0, _tl_0, _tc_0, _tr_0, _
   return $next_neighborhood($$clip(_up_0, $$clip(_left_0, _tl_0)), $$clip(_up_0, _tc_0), $$clip(_up_0, $$clip(_right_0, _tr_0)), $$clip(_left_0, _ml_0), _mc_0, $$clip(_right_0, _mr_0), $$clip(_down_0, $$clip(_left_0, _bl_0)), $$clip(_down_0, _bc_0), $$clip(_down_0, $$clip(_right_0, _br_0)));
 }
 
+function $wrap_before(_before_0, _after_0) {
+  if (_before_0 == 0) {
+    return _after_0;
+  } else {
+    const _i_0 = (_before_0 - 1);
+    return _i_0;
+  }
+}
+
+function $wrap_after(_before_0, _after_0) {
+  if (_after_0 == 0) {
+    return 0;
+  } else {
+    return nat_chk(_before_0 + 1);
+  }
+}
+
 function $Bool_to_u32(_b_0) {
   if (!_b_0) {
     return 0;
@@ -335,4 +352,6 @@ const $$clip = $clip;export default {
   "next_neighborhood": run_lib((a0,a1,a2,a3,a4,a5,a6,a7,a8) => run_loop($next_neighborhood(a0,a1,a2,a3,a4,a5,a6,a7,a8)), 9),
   "clip": run_lib((a0,a1) => run_loop($clip(nat_in(a0),a1)), 2),
   "next_bounded": run_lib((a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12) => run_loop($next_bounded(nat_in(a0),nat_in(a1),nat_in(a2),nat_in(a3),a4,a5,a6,a7,a8,a9,a10,a11,a12)), 13),
+  "wrap_before": run_lib((a0,a1) => run_loop($wrap_before(nat_in(a0),nat_in(a1))), 2),
+  "wrap_after": run_lib((a0,a1) => run_loop($wrap_after(nat_in(a0),nat_in(a1))), 2),
 };

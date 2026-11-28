@@ -19,7 +19,8 @@ export function resizeBoard(b,width,height){
   }
   return out;
 }
-export function advance(Life,b){
+export function advance(Life,b,wrap=false){
+  if(wrap)return advanceWrapped(Life,b);
   const out=makeBoard(b.width,b.height), a=b.words, s=b.stride;
   for(let y=0;y<b.height;y++)for(let w=0;w<s;w++){
     const i=y*s+w, above=i-s, below=i+s;
@@ -30,6 +31,26 @@ export function advance(Life,b){
       a[i-1]??0,a[i],a[i+1]??0,
       a[below-1]??0,a[below]??0,a[below+1]??0
     );
+  }
+  return out;
+}
+function advanceWrapped(Life,b){
+  const out=makeBoard(b.width,b.height), a=b.words, s=b.stride;
+  const west=[],east=[];
+  for(let w=0;w<s;w++){
+    west[w]=Life.wrap_before(w,s-1-w);
+    east[w]=Life.wrap_after(w,s-1-w);
+  }
+  for(let y=0;y<b.height;y++){
+    const up=Life.wrap_before(y,b.height-1-y)*s, mid=y*s, down=Life.wrap_after(y,b.height-1-y)*s;
+    for(let w=0;w<s;w++){
+      const l=west[w],r=east[w];
+      out.words[mid+w]=Life.next_neighborhood(
+        a[up+l],a[up+w],a[up+r],
+        a[mid+l],a[mid+w],a[mid+r],
+        a[down+l],a[down+w],a[down+r]
+      );
+    }
   }
   return out;
 }

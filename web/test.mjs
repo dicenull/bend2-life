@@ -1,15 +1,17 @@
 import assert from 'node:assert/strict';
 import Life from './life.mjs';
 import {advance,getCell,putCell,makeBoard,resizeBoard} from './board.mjs';
-const next=(b)=>advance(Life,b);
-function plain(b){
+const next=(b,wrap=false)=>advance(Life,b,wrap);
+function plain(b,wrap=false){
   const a=Array.from({length:b.height},(_,y)=>Array.from({length:b.width},(_,x)=>
     (b.words[y*(b.width/32)+Math.floor(x/32)]>>> (x%32))&1));
   const out=new Uint32Array(b.width/32*b.height);
   for(let y=0;y<b.height;y++)for(let x=0;x<b.width;x++){
     let count=0;
     for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){
-      if(i||j)count+=a[y+j]?.[x+i]??0;
+      if(!(i||j))continue;
+      const ny=y+j,nx=x+i;
+      count+=wrap?a[(ny+b.height)%b.height][(nx+b.width)%b.width]:a[ny]?.[nx]??0;
     }
     if(count===3||(count===2&&a[y][x]))out[y*(b.width/32)+Math.floor(x/32)]|=1<<(x%32);
   }
@@ -37,6 +39,14 @@ assert.deepEqual(glider,board(gridAt(31,14)));
 assert.deepEqual(next(board([[127,0],[0,0],[1,0]],128,72)),board([],128,72),'no horizontal wrap');
 assert.deepEqual(next(board([[2,71],[2,0],[2,1]],128,72)),board([],128,72),'no vertical wrap');
 assert.deepEqual(next(board([[127,3],[127,4],[0,5]],128,72)),board([],128,72),'no wrap between row storage');
+const edgeBlinker=board([[63,2],[0,2],[1,2]],64,5);
+const wrappedBlinker=board([[0,1],[0,2],[0,3]],64,5);
+assert.deepEqual(next(edgeBlinker),board([],64,5),'dead exterior extinguishes edge blinker');
+assert.deepEqual(next(edgeBlinker,true),wrappedBlinker,'horizontal wrap');
+assert.deepEqual(next(wrappedBlinker,true),edgeBlinker,'wrapped blinker returns after two generations');
+assert.deepEqual(next(board([[1,4],[1,0],[1,1]],64,5),true),board([[0,0],[1,0],[2,0]],64,5),'vertical wrap');
+const corners=board([[63,4],[0,4],[63,0]],64,5);
+assert.deepEqual(next(corners,true),board([[63,4],[0,4],[63,0],[0,0]],64,5),'diagonal wrap');
 const original=board([[31,39],[32,0],[63,0],[95,55]]);
 const small=resizeBoard(original,64,40), big=resizeBoard(small,128,72);
 assert.equal(getCell(big,31,39),1);assert.equal(getCell(big,32,0),1);assert.equal(getCell(big,63,0),1);
@@ -55,6 +65,13 @@ const rand=()=>((state=(Math.imul(state,1664525)+1013904223)>>>0)>>>16)/65536;
 for(let k=0;k<100;k++){
   const [w,h]=widths[k%widths.length];let a=makeBoard(w,h);const p=(k%10+1)/12;
   for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(rand()<p)putCell(a,x,y,1);
-  for(let t=0;t<5;t++){const b=next(a);assert.deepEqual(b.words,plain(a),`board ${k} / generation ${t}`);a=b;}
+  for(const wrap of [false,true]){
+    let current=a;
+    for(let t=0;t<5;t++){
+      const b=next(current,wrap);
+      assert.deepEqual(b.words,plain(current,wrap),`board ${k} / generation ${t} / wrap ${wrap}`);
+      current=b;
+    }
+  }
 }
-console.log('PASS: 3072 seam neighborhoods, 500 random-board generations, patterns, resize, and non-wrapping edges');
+console.log('PASS: 3072 seam neighborhoods, 500 generations per boundary policy, patterns, and resize');

@@ -32,11 +32,16 @@ canvas{display:block;width:min(100%,calc(var(--stage-height) * var(--ratio) - 4p
         <button id="run" class="icon" type="button" aria-label="再生" aria-keyshortcuts="Space" title="再生" aria-pressed="false"><svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4.5v15l12-7.5Z" fill="currentColor"/></svg><svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14m8-14v14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
         <button id="step" class="icon" type="button" aria-label="1世代進める" aria-keyshortcuts="ArrowRight" title="1世代進める"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5v14l11-7ZM19 5v14" fill="currentColor" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button id="clear" class="icon" type="button" aria-label="盤面を消去" title="盤面を消去"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 7h15M9 7V4h6v3m-8 0 1 13h8l1-13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <select id="speed" aria-label="再生速度" title="再生速度">
+          <option value="1" selected>1×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option><option value="5">5×</option>
+          <option value="6">6×</option><option value="7">7×</option><option value="8">8×</option><option value="9">9×</option><option value="10">10×</option>
+        </select>
       </div>
       <div class="tool-group" role="group" aria-label="盤面設定">
         <select id="board-size" aria-label="盤面サイズ"><option value="64x40">64 × 40</option><option value="96x56" selected>96 × 56</option><option value="128x72">128 × 72</option></select>
-        <select id="pattern" aria-label="初期パターン"><option value="glider">グライダー</option><option value="blinker">ブリンカー</option><option value="block">ブロック</option><option value="random">ランダム</option></select>
+        <select id="pattern" aria-label="初期パターン"><option value="glider">グライダー</option><option value="blinker">ブリンカー</option><option value="edge-blinker">端のブリンカー</option><option value="block">ブロック</option><option value="random">ランダム</option></select>
         <button id="preset" type="button">配置</button>
+        <button id="wrap" type="button" aria-pressed="true" title="上下端と左右端をそれぞれつなぐ">端をつなぐ</button>
       </div>
       <div class="tool-group" role="group" aria-label="盤面表示">
         <button id="zoom" type="button" aria-pressed="false">拡大</button>
@@ -53,9 +58,11 @@ const Life = (() => {
 })();
 // BOARD_MODULE
 const el=(id)=>document.getElementById(id);
-const cv=el('board'), ctx=cv.getContext('2d'), stage=el('stage'), run=el('run'), px=12;
-let board=makeBoard(96,56), generation=0, timer=null, paint=null, drag=null;
-let zoomed=false, panning=false;
+const cv=el('board'), ctx=cv.getContext('2d'), stage=el('stage'), run=el('run'), wrap=el('wrap'), px=12;
+let board=makeBoard(96,56), generation=0, paint=null, drag=null;
+const generationMs=135;
+let frame=null, lastFrame=0, elapsed=0, speed=1;
+let zoomed=false, panning=false, wrapped=wrap.getAttribute('aria-pressed')==='true';
 const patterns={glider:[[1,0],[2,1],[0,2],[1,2],[2,2]],blinker:[[0,1],[1,1],[2,1]],block:[[0,0],[1,0],[0,1],[1,1]]};
 function setGeometry(){
   cv.width=board.width*px;cv.height=board.height*px;
@@ -80,13 +87,32 @@ function render(){
   }
   el('status').value=`${board.width} × ${board.height} ｜ 世代 ${generation} / 生存 ${alive}`;
 }
-function next(){board=advance(Life,board);generation++;render();}
-function stop(){if(timer!==null){clearInterval(timer);timer=null;}run.title='再生';run.setAttribute('aria-label','再生');run.setAttribute('aria-pressed','false');}
+function next(count=1){
+  for(let i=0;i<count;i++)board=advance(Life,board,wrapped);
+  generation+=count;render();
+}
+function tick(now){
+  elapsed+=Math.min(Math.max(now-lastFrame,0),generationMs)*speed;
+  lastFrame=now;
+  const count=Math.floor(elapsed/generationMs);
+  if(count){
+    elapsed-=count*generationMs;
+    next(count);
+  }
+  frame=requestAnimationFrame(tick);
+}
+function stop(){
+  if(frame!==null){cancelAnimationFrame(frame);frame=null;}
+  run.title='再生';run.setAttribute('aria-label','再生');run.setAttribute('aria-pressed','false');
+}
 function reset(){stop();board=makeBoard(board.width,board.height);generation=0;}
 function place(name){
   reset();
   if(name==='random'){
     for(let y=0;y<board.height;y++)for(let x=0;x<board.width;x++)if(Math.random()<.24)putCell(board,x,y,1);
+  }else if(name==='edge-blinker'){
+    const y=board.height>>>1;
+    for(const x of [board.width-1,0,1])putCell(board,x,y,1);
   }else{
     const ax=(board.width>>>1)-1,ay=(board.height>>>1)-1;
     for(const [x,y] of patterns[name])putCell(board,ax+x,ay+y,1);
@@ -146,12 +172,21 @@ cv.addEventListener('pointermove',e=>{
 });
 for(const event of ['pointerup','pointercancel','lostpointercapture'])cv.addEventListener(event,e=>{if(e.isPrimary){paint=null;drag=null;}});
 function toggleRun(){
-  if(timer!==null){stop();return;}
-  timer=setInterval(next,135);run.title='停止';run.setAttribute('aria-label','停止');run.setAttribute('aria-pressed','true');
+  if(frame!==null){stop();return;}
+  elapsed=0;lastFrame=performance.now();
+  frame=requestAnimationFrame(tick);run.title='停止';run.setAttribute('aria-label','停止');run.setAttribute('aria-pressed','true');
 }
 function stepOnce(){stop();next();}
 run.addEventListener('click',toggleRun);
 el('step').addEventListener('click',stepOnce);
+el('speed').addEventListener('change',e=>{
+  speed=Number(e.currentTarget.value);
+  if(frame!==null)lastFrame=performance.now();
+});
+wrap.addEventListener('click',()=>{
+  wrapped=!wrapped;
+  wrap.setAttribute('aria-pressed',String(wrapped));
+});
 document.addEventListener('keydown',e=>{
   if(e.defaultPrevented||e.isComposing||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;
   const target=e.target;

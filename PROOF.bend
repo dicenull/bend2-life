@@ -2,6 +2,7 @@ import Base
 import ./LAWS.bend as Laws
 import ./core/proof-checks.bend as Checks
 import ./core/finite-proof.bend as Finite
+import ./core/wrap-proof.bend as Wrapped
 
 def Laws.cell_follows_conway(alive, neighbors):
   match neighbors:
@@ -18,3 +19,6 @@ def Laws.cell_follows_conway(alive, neighbors):
 
 def Laws.bounded_word_matches_dead_exterior(edges, around):
   Finite.bounded_update_matches_reference(edges, around)
+
+def Laws.wrapped_word_matches_opposite_edges(col, row, board):
+  Wrapped.update_matches_reference(col, row, board)
