@@ -389,7 +389,6 @@ const $$clip = $clip;return {
 };
 
 })();
-// Flat row-major bitboard. Widths are multiples of 32; one U32 per word.
 function makeBoard(width,height){
   if(!Number.isSafeInteger(width)||width<32||width%32!==0||!Number.isSafeInteger(height)||height<1)throw RangeError('Invalid board dimensions');
   return {width,height,stride:width/32,words:new Uint32Array(width/32*height)};
@@ -415,8 +414,7 @@ function advance(Life,b){
   const out=makeBoard(b.width,b.height), a=b.words, s=b.stride;
   for(let y=0;y<b.height;y++)for(let w=0;w<s;w++){
     const i=y*s+w, above=i-s, below=i+s;
-    // These are flat-array candidates, not necessarily geometric neighbors.
-    // Bend masks out any slot that lies beyond one of the four board edges.
+    // 行をまたいだ候補も渡す。盤面外かどうかはBendが判定する。
     out.words[i]=Life.next_bounded(
       w,s-1-w,y,b.height-1-y,
       a[above-1]??0,a[above]??0,a[above+1]??0,

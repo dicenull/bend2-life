@@ -1,8 +1,7 @@
 import Base
-import ./main.bend as Engine
+import ../core/main.bend as Engine
 
-# A fixed stride of four packed words supports every preset. The sparse
-# address tree has 512 leaves; only width-by-height cells are on the board.
+# 盤面の幅にかかわらず、木のアドレスは1行を4区画として計算する。
 type Words is Data:
   WordZero{}
   WordLeaf{bits: U32}
@@ -143,7 +142,6 @@ def resize(board: Board, +new_width: U32, +new_height: U32) -> Board:
       +columns = U32.to_nat(U32.shrn(U32.min(w,new_width),5n))
       Board{new_width,new_height,rows_copy(U32.to_nat(U32.min(h,new_height)),columns,tree,WordZero{})}
 
-# Match the browser's three initial patterns.
 def glider(+w: U32, +h: U32) -> Board:
   +x = (U32.shr(w) - 1 : U32)
   +y = (U32.shr(h) - 1 : U32)

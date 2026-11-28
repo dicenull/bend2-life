@@ -1,5 +1,4 @@
-# Conway's Game of Life: bit 0 is the leftmost cell in each U32 word.
-# Edges pack west keep-alive in bit 0 and east keep-alive in bit 1.
+# 各U32の最下位ビットが区画の左端。
 import Base
 
 def next_cell(alive: Bool, neighbors: Nat) -> Bool:
@@ -16,7 +15,6 @@ def next_cell(alive: Bool, neighbors: Nat) -> Bool:
       False{}
 
 
-# Each row is stored west-to-east, least-significant bit first.
 def first_or(n: Nat, row: Word(n), east: Bool) -> Bool:
   match n:
     case 0n:
@@ -29,8 +27,6 @@ def first_or(n: Nat, row: Word(n), east: Bool) -> Bool:
 def count_three(w: Bool, c: Bool, e: Bool) -> U32:
   U32.add(U32.add(Bool.to_u32(w), Bool.to_u32(c)), Bool.to_u32(e))
 
-# Slide the three rows in lockstep, carrying the previous heads.
-# Only the final column needs the right neighbor word.
 def scan(+n: Nat, top: Word(n), mid: Word(n), bot: Word(n),
          tw: Bool, mw: Bool, bw: Bool, +te: Bool, +me: Bool, +be: Bool) -> Word(n):
   match n:
@@ -48,6 +44,7 @@ def scan(+n: Nat, top: Word(n), mid: Word(n), bot: Word(n),
 type Edge is Data:
   edges{west: Bool, east: Bool}
 
+# 境界値のビット0が左隣、ビット1が右隣。
 def decode_edge_bits(w: Word(32n)) -> Edge:
   match w:
     case WCon{west, WCon{east, _}}:
@@ -87,14 +84,11 @@ def neighbor_edge(left: U32, right: U32) -> Edge:
     case U32{l} U32{r}:
       edges{last_bit(31n, l), first_or(32n, r, False{})}
 
-# Raw stencil on nine words. The finite-board entry point below clips edges.
 def next_neighborhood(tl: U32, tc: U32, tr: U32, ml: U32, mc: U32, mr: U32, bl: U32, bc: U32, br: U32) -> U32:
   match tc mc bc:
     case U32{t} U32{m} U32{b}:
       scan_word(t, m, b, neighbor_edge(tl, tr), neighbor_edge(ml, mr), neighbor_edge(bl, br))
 
-# Finite-board extension of Conway: if there is no board space in the
-# requested direction, the whole candidate word is dead, regardless of value.
 def clip(distance: Nat, candidate: U32) -> U32:
   match distance:
     case 0n:
@@ -102,8 +96,6 @@ def clip(distance: Nat, candidate: U32) -> U32:
     case 1n+rest:
       candidate
 
-# Distances are numbers of word-columns (left/right) or rows (up/down)
-# available before reaching the edge. The center itself is on the board.
 def next_bounded(+left: Nat, +right: Nat, +up: Nat, +down: Nat,
                  tl: U32, tc: U32, tr: U32, ml: U32, mc: U32, mr: U32,
                  bl: U32, bc: U32, br: U32) -> U32:

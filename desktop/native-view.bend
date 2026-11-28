@@ -3,7 +3,6 @@ import ./native-board.bend as Grid
 import ./native-layout.bend as Layout
 import ./native-state.bend as Model
 
-# Center a 5 x 5 glyph at 2x scale inside each 14 x 14 tile button.
 def icon(i: U32, running: Bool, width: U32) -> U32:
   match i running width:
     case 0 True{} _: 29224827
@@ -35,7 +34,6 @@ def button_face(+i: U32, +lx: U32, +y: U32, running: Bool, width: U32, z: U32) -
   on = glyph_on(Layout.in_area(lx,y,2,6,10,10), icon(i,running,width),lx,y)
   Bool.pick(U32,on,icon_ink(i,z),face)
 
-# The small label uses 3 x 5 glyphs at one tile per pixel.
 def zoom_digit(z: U32) -> U32:
   match z:
     case 1: 29850

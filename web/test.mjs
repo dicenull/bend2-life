@@ -3,7 +3,6 @@ import Life from './life.mjs';
 import {advance,getCell,putCell,makeBoard,resizeBoard} from './board.mjs';
 const next=(b)=>advance(Life,b);
 function plain(b){
-  // Independent reference: unpack by literal indices; no word-edge helpers.
   const a=Array.from({length:b.height},(_,y)=>Array.from({length:b.width},(_,x)=>
     (b.words[y*(b.width/32)+Math.floor(x/32)]>>> (x%32))&1));
   const out=new Uint32Array(b.width/32*b.height);
@@ -42,7 +41,6 @@ const original=board([[31,39],[32,0],[63,0],[95,55]]);
 const small=resizeBoard(original,64,40), big=resizeBoard(small,128,72);
 assert.equal(getCell(big,31,39),1);assert.equal(getCell(big,32,0),1);assert.equal(getCell(big,63,0),1);
 assert.equal(getCell(big,95,55),0);assert.equal(getCell(big,128,0),0);
-// Exercise every edge combination even when clipped slots contain live cells.
 const samples=[4294967295, 3, 1, 2147483648, 2147483649, 3, 1073741824, 1, 7];
 for(let mask=0;mask<16;mask++){
   const [l,r,u,d]=[1,2,4,8].map((bit)=>mask&bit?3:0);

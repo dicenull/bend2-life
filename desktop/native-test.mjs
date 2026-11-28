@@ -4,8 +4,8 @@ import {mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
-import Life from './life.mjs';
-import {advance,getCell,makeBoard,putCell} from './board.mjs';
+import Life from '../web/life.mjs';
+import {advance,getCell,makeBoard,putCell} from '../web/board.mjs';
 
 const dir=mkdtempSync(join(tmpdir(),'bend2-life-native-'));
 try {
@@ -22,7 +22,6 @@ try {
   const cells=(b)=>Array.from({length:b.width*b.height},(_,i)=>G.get(b,i%b.width,Math.floor(i/b.width)));
   const positions=(b)=>cells(b).flatMap((v,i)=>v?[[i%b.width,Math.floor(i/b.width)]]:[]);
 
-  // Each actual glyph is centered, including pause and every size digit.
   for(const preset of [49,50,51])for(const running of [false,true]){
     const paused=key(M.initial(),preset), state=running?key(paused,32):paused;
     for(let i=0;i<5;i++){

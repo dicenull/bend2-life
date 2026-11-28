@@ -2,7 +2,6 @@ import Base
 import ./native-state.bend as Model
 import ./native-view.bend as View
 
-# Only the window adapter knows about the OS and the clock.
 def resume(result: Maybe<Model.State> & Bool, window: Window, image: Image,
            more: Window -> Model.State -> Image -> IO(Unit)) -> IO(Unit):
   match result:
@@ -24,7 +23,6 @@ def present(shown: Window & Image & List<Event>, state: Model.State,
     now : Nat <- IO.now()
     resume(Model.finish_frame(now,Model.events_dirty(events,state,False{})),window,image,more)
 
-# Use the standard window effects without requiring a GPU compiler.
 def run(fuel: Nat, window: Window, state: Model.State, image: Image) -> IO(Unit):
   match fuel:
     case 0n: Window.close(window)
