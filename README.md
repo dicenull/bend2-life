@@ -1,62 +1,40 @@
 # ライフゲーム / Bend 2
 
-Notionの「ライフゲーム」案を、Bend 2で動く小さなプロトタイプにしたものです。盤面は64×40、96×56（初期値）、128×72から選べます。横32セルごとに1個の32ビット整数に詰め、境界のセルも隣の区画を参照します。近傍判定とセル遷移は両版で同じBend 2コードを使います。ブラウザ版の描画と操作はJavaScript、Mac版はBend 2です。
+Conwayのライフゲーム。Web版とMac版は、盤面を1世代進める [Bend 2の実装](core/main.bend) を共有します。
 
-## フォルダ構成
+## 起動
 
-| 場所 | 内容 |
-| --- | --- |
-| [`web/`](web/) | ブラウザ版。HTML、操作、Webビルド、テスト |
-| [`desktop/`](desktop/) | Macアプリ版。盤面、操作、描画、アプリのビルド |
-| [`core/`](core/) | 両版で使う更新処理、参照仕様、補助の証明・固定パターン |
-| [`LAWS.bend`](LAWS.bend) / [`PROOF.bend`](PROOF.bend) | 最初に読む2つの保証と、証明チェックの入口 |
-
-## ブラウザ版で遊ぶ
-
-[`web/index.html`](web/index.html) をブラウザで開きます。サーバー、Bendのインストール、ネット接続は不要です。はじめはグライダーが置いてあります。「再生」か「1世代進める」を押してください。盤面にフォーカスがあるときは、Spaceで再生・停止、→で停止して1世代進めます。Tabで移動したボタンや選択欄は、標準のキー操作を保ちます。タップでセルを反転し、ドラッグで連続して配置・消去できます。「拡大」でセルを置きやすくし、「移動」モードで盤面をドラッグできます。「全体表示」で全体に戻ります。盤面サイズを変更すると左上を基準に重なる範囲を保持します。現在選んでいるサイズが盤面の範囲です。盤面の外は常に死セルで、外で誕生したり反対側につながったりはしません。盤面を広げたとき、増えた部分は死セルから始まります。
-
-## Macアプリ版（Bend 2）
-
-ブラウザ版とは別に、Macで起動する版を用意しています。盤面、操作、入力判定、描画はすべてBendで、アプリ実行にJavaScriptやブラウザは使いません。ビルドには上記のBend 2とXcodeのCommand Line Toolsが必要です。シェルスクリプトはコンパイルとMacアプリの梱包だけを行います。
+- **Web:** リポジトリを取得して [`web/index.html`](web/index.html) をブラウザで開きます。
+- **Mac:** Bend 2とXcode Command Line Toolsを用意して、リポジトリ直下で実行します。
 
 ```sh
 ./desktop/build-native.sh
 open 'desktop/.build/Bend 2 Life.app'
-node desktop/native-test.mjs
 ```
 
-上の7ボタンは左から再生・停止、1世代進む、消去、グライダー配置、サイズ切り替え、縮小、拡大。拡大率は1x・2x・3x・4xで、盤面の中央を軸に切り替えます。現在の倍率は−と＋の間に表示します。**Space**で再生・停止、**→**で1世代進む、**C**で消去、**G/B/O**でグライダー・ブリンカー・ブロック、**1/2/3**でサイズを選べます。クリックやドラッグでセルを編集できます。パンとランダム配置はブラウザ版のみです。
+## LAW
 
-| 層 | ファイル | 担当 |
-| --- | --- | --- |
-| ルール・証明 | `core/main.bend` / `LAWS.bend` / `PROOF.bend` | Conwayルールと有限盤面の更新。ブラウザ版と共有 |
-| 盤面 | `native-board.bend` | ビット盤面の保存、編集、サイズ変更、世代更新 |
-| 操作 | `native-state.bend` / `native-layout.bend` | 純粋な状態変更と、描画・入力が共有する座標 |
-| 表示 | `native-view.bend` | 状態からBendの `Image` を作る |
-| OS | `native.bend` | ウィンドウ、イベント受け渡し、時刻、再描画のキャッシュ |
+[`LAWS.bend`](LAWS.bend) の2本を [`PROOF.bend`](PROOF.bend) で検証します。
 
-`bend PROOF.bend` は共通ルールと境界を証明します。Mac版の基盤データ構造、入力や描画の配線は証明の対象にせず、`desktop/native-test.mjs` で盤面・操作・ブラウザ版との一致を確認します。
+[証明とテストの分け方](docs/proof-vs-tests.md) · [証明パターン](docs/proof-patterns.md)
 
-## LAWと検証
+## ビルドと検証
 
-[`LAWS.bend`](LAWS.bend) で読むのは次の2つです。
-
-1. **セルの生死はConwayのルールどおり。** 生きた近傍が3つなら次は生、2つなら現状維持、それ以外は死。
-2. **有限盤面では、外側を死とした8近傍の計算どおりに更新する。** 1回の更新で中央区画の32セルすべてが参照計算と一致します。区画の継ぎ目はつなぎますが、盤面の外周はつなぎません。
-
-参照計算は [`core/life-spec.bend`](core/life-spec.bend) にあります。近傍数ごとのケース、区画内・区画間の補助則、ブロックとブリンカーなどの固定パターンは [`core/proof-checks.bend`](core/proof-checks.bend) に分け、`PROOF.bend` から引き続き確認します。自然数の帰納法などは [証明パターン](docs/proof-patterns.md) を参照してください。
-
-画面側が正しい区画や境界距離を渡すこと、盤面の編集・リサイズ・入力はテストで確認します。[証明とテストの分け方](docs/proof-vs-tests.md)。
-
-[Bend 2](https://github.com/bendlang/bend) 2.0.40（コミット `6180be5b21c4af6895395b27ad3cde026909364e`）、Node.jsで再現できます。
+[Bend 2.0.40](https://github.com/bendlang/bend/tree/6180be5b21c4af6895395b27ad3cde026909364e) とNode.jsを使用します。
 
 ```sh
 bend PROOF.bend
-bend PROOF.bend --verdict   # 独立したBendTTカーネル。Lean 4.34.0が必要
-node web/build.mjs          # web/life.mjs と web/index.html を生成
+node web/build.mjs
 node web/test.mjs
+node desktop/native-test.mjs
 ```
 
-セル遷移のルールは初版と同じです。区画境界や盤面サイズの処理は `node web/test.mjs` で確認できます。
+生成コードに含まれるBendランタイムのライセンスは [`BEND-LICENSE.txt`](BEND-LICENSE.txt) を参照。
 
-付属の生成コードにはBendコンパイラが出力するランタイムが含まれます。Bendのライセンスを `BEND-LICENSE.txt` に同梱しています。
+## BendTTカーネルでの再検証
+
+Lean 4.34.0を用意して、独立したBendTTカーネルで再検証します。
+
+```sh
+bend PROOF.bend --verdict
+```
